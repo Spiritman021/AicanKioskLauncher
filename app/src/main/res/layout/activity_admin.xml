@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/kiosk_background"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:padding="32dp">
+
+        <!-- Title -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/admin_title"
+            android:textColor="@color/kiosk_text_primary"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/kiosk_divider"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Device Owner Status -->
+        <TextView
+            android:id="@+id/tvDeviceOwnerStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/kiosk_surface"
+            android:gravity="center"
+            android:padding="16dp"
+            android:text="Device Owner: —"
+            android:textColor="@color/kiosk_text_primary"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="32dp" />
+
+        <!-- Re-lock Kiosk -->
+        <Button
+            android:id="@+id/btnRelockKiosk"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="@string/btn_relock_kiosk"
+            android:textColor="@color/white"
+            android:backgroundTint="@color/kiosk_accent"
+            android:textAllCaps="false"
+            android:textSize="15sp"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Clear Restrictions -->
+        <Button
+            android:id="@+id/btnClearRestrictions"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="@string/btn_clear_restrictions"
+            android:textColor="@color/admin_button_text"
+            android:backgroundTint="@color/admin_button_bg"
+            android:textAllCaps="false"
+            android:textSize="15sp"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Open Settings -->
+        <Button
+            android:id="@+id/btnOpenSettings"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="@string/btn_open_settings"
+            android:textColor="@color/admin_button_text"
+            android:backgroundTint="@color/admin_button_bg"
+            android:textAllCaps="false"
+            android:textSize="15sp"
+            android:layout_marginBottom="32dp" />
+
+        <!-- Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/kiosk_divider"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Return to Kiosk -->
+        <Button
+            android:id="@+id/btnReturnToKiosk"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="@string/btn_return_to_kiosk"
+            android:textColor="@color/white"
+            android:backgroundTint="@color/kiosk_status_active"
+            android:textAllCaps="false"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+</ScrollView>

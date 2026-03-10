@@ -1,0 +1,27 @@
+<resources>
+    <string name="app_name">Aican Kiosk Launcher</string>
+
+    <!-- Device Admin -->
+    <string name="device_admin_enabled">Device Admin Enabled</string>
+    <string name="device_admin_disabled">Device Admin Disabled</string>
+    <string name="device_admin_disable_warning">You cannot disable this administrator.</string>
+
+    <!-- Kiosk UI -->
+    <string name="kiosk_mode_active">KIOSK MODE ACTIVE</string>
+    <string name="kiosk_status_locked">Device is locked in kiosk mode</string>
+    <string name="kiosk_status_unlocked">Device owner not set — kiosk inactive</string>
+    <string name="powered_by">Powered by Aican</string>
+
+    <!-- Admin Panel -->
+    <string name="admin_title">Admin Settings</string>
+    <string name="admin_password_title">Enter Admin Password</string>
+    <string name="admin_password_hint">Password</string>
+    <string name="admin_password_incorrect">Incorrect password</string>
+    <string name="btn_relock_kiosk">Re-lock Kiosk Mode</string>
+    <string name="btn_open_settings">Open Android Settings</string>
+    <string name="btn_clear_restrictions">Clear User Restrictions</string>
+    <string name="btn_return_to_kiosk">Return to Kiosk</string>
+    <string name="device_owner_status">Device Owner: %1$s</string>
+    <string name="restrictions_cleared">User restrictions cleared</string>
+    <string name="kiosk_relocked">Kiosk mode re-locked</string>
+</resources>
