@@ -15,18 +15,21 @@
         android:theme="@style/Theme.AicanKioskLauncher">
 
         <!-- Main Kiosk Activity — also acts as Home Launcher -->
-        <activity
-            android:name=".MainActivity"
-            android:exported="true"
-            android:launchMode="singleInstance"
-            android:theme="@style/Theme.AicanKioskLauncher.Kiosk">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.HOME" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+      <activity
+    android:name=".MainActivity"
+    android:exported="true"
+    android:launchMode="singleTask"
+    android:excludeFromRecents="true"
+    android:showWhenLocked="true"
+    android:turnScreenOn="true"
+    android:theme="@style/Theme.AicanKioskLauncher.Kiosk">
+    <intent-filter android:priority="999">
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.HOME" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.LAUNCHER" />
+    </intent-filter>
+</activity>
 
         <!-- Admin Settings Panel (hidden, no launcher icon) -->
         <activity

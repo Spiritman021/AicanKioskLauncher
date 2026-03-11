@@ -19,6 +19,7 @@ import androidx.appcompat.app.AppCompatActivity
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import android.view.KeyEvent
 
 /**
  * MainActivity — The Kiosk Launcher.
@@ -96,11 +97,33 @@ class MainActivity : AppCompatActivity() {
         setupSecretExit()
     }
 
-    override fun onResume() {
-        super.onResume()
-        hideSystemUI()
-        clockHandler.post(clockRunnable)
+ override fun onResume() {
+    super.onResume()
+    hideSystemUI()
+    clockHandler.post(clockRunnable)
+
+    // Re-lock if device owner and not already in lock task
+    if (dpm.isDeviceOwnerApp(packageName)) {
+        try {
+            dpm.setLockTaskPackages(adminComponent, arrayOf(packageName))
+            startLockTask()
+        } catch (e: Exception) {
+            // Already in lock task mode, ignore
+        }
     }
+}
+
+override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+    return when (keyCode) {
+        KeyEvent.KEYCODE_HOME,
+        KeyEvent.KEYCODE_BACK,
+        KeyEvent.KEYCODE_APP_SWITCH,
+        KeyEvent.KEYCODE_MENU,
+        KeyEvent.KEYCODE_VOLUME_UP,
+        KeyEvent.KEYCODE_VOLUME_DOWN -> true // consume & block
+        else -> super.onKeyDown(keyCode, event)
+    }
+}
 
     override fun onPause() {
         super.onPause()
@@ -112,41 +135,61 @@ class MainActivity : AppCompatActivity() {
      * Only works when the app is set as Device Owner.
      */
     private fun lockDownDevice() {
+    try {
+        // 1. Set allowed packages and start lock task
+        dpm.setLockTaskPackages(adminComponent, arrayOf(packageName))
+        startLockTask()
+
+        // 2. Prevent factory reset
+        dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_FACTORY_RESET)
+
+        // 3. Prevent adding accounts
+        dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_ADD_USER)
+
+        // 4. Prevent sideloading
+        dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_INSTALL_UNKNOWN_SOURCES)
+
+        // 5. Disable safe boot
+        dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_SAFE_BOOT)
+
+        // ── THESE WERE MISSING ──
+
+        // 6. Prevent WiFi changes (this blocks Settings → WiFi)
+        dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_WIFI)
+
+        // 7. Prevent Bluetooth changes
+        dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_BLUETOOTH)
+
+        // 8. Prevent USB file transfer
+        dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_USB_FILE_TRANSFER)
+
+
+        // 10. Prevent volume changes (optional)
+        // dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_ADJUST_VOLUME)
+
+        // 11. Suspend settings + other system apps
         try {
-            // 1. Set this app as the only allowed lock task package
-            dpm.setLockTaskPackages(adminComponent, arrayOf(packageName))
-            startLockTask()
-
-            // 2. Prevent factory reset
-            dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_FACTORY_RESET)
-
-            // 3. Prevent adding new user accounts
-            dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_ADD_USER)
-
-            // 4. Prevent installing apps from unknown sources
-            dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_INSTALL_UNKNOWN_SOURCES)
-
-            // 5. Disable safe boot
-            dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_SAFE_BOOT)
-
-            // 6. Try to suspend system packages (may fail on some devices)
-            try {
-                dpm.setPackagesSuspended(
-                    adminComponent,
-                    arrayOf(
-                        "com.android.settings",
-                        "com.google.android.gms"
-                    ),
-                    true
-                )
-            } catch (e: Exception) {
-                // Some packages may not be suspendable on certain devices
-            }
-
+            dpm.setPackagesSuspended(
+                adminComponent,
+                arrayOf(
+                    "com.android.settings",
+                    "com.miui.home",
+                    "com.miui.securitycenter",
+                    "com.google.android.gms",
+                    "com.android.vending",
+                    "com.miui.gallery",
+                    "com.mi.android.globalFileexplorer"
+                ),
+                true
+            )
         } catch (e: Exception) {
-            Toast.makeText(this, "Lock failed: ${e.message}", Toast.LENGTH_LONG).show()
+            // Some packages may not be suspendable
         }
+
+    } catch (e: Exception) {
+        Toast.makeText(this, "Lock failed: ${e.message}", Toast.LENGTH_LONG).show()
     }
+}
 
     /**
      * Immersive sticky mode — hides status bar and navigation bar.
