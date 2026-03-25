@@ -18,4 +18,8 @@
     <color name="admin_button_bg">#FF21262D</color>
     <color name="admin_button_text">#FFE6EDF3</color>
     <color name="admin_danger">#FFF85149</color>
+
+    <!-- Switch Colors -->
+    <color name="switch_track_on">#FF3FB950</color>
+    <color name="switch_track_off">#FF30363D</color>
 </resources>

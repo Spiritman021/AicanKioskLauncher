@@ -11,11 +11,12 @@ import android.os.UserManager
 import android.view.View
 import android.view.WindowManager
 import android.widget.EditText
-import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -31,6 +32,7 @@ import android.view.KeyEvent
  * - User restrictions (no factory reset, no unknown apps, no new accounts)
  * - System packages suspended (settings, etc.)
  * - Screen always on
+ * - Displays whitelisted apps in a grid for launching within kiosk mode
  *
  * Secret Exit: Tap the logo 7 times → enter password → exits kiosk → opens AdminActivity.
  */
@@ -42,7 +44,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvClock: TextView
     private lateinit var tvStatus: TextView
     private lateinit var tvStatusDetail: TextView
-    private lateinit var ivLogo: ImageView
+    private lateinit var tvNoApps: TextView
+    private lateinit var rvWhitelistedApps: RecyclerView
+    private lateinit var whitelistedAppAdapter: WhitelistedAppAdapter
 
     private val clockHandler = Handler(Looper.getMainLooper())
     private val clockRunnable = object : Runnable {
@@ -59,6 +63,9 @@ class MainActivity : AppCompatActivity() {
         private const val ADMIN_PASSWORD = "aican2024"
         private const val SECRET_TAP_COUNT = 7
         private const val TAP_RESET_DELAY_MS = 3000L
+        private const val PREFS_NAME = "kiosk_prefs"
+        private const val KEY_WHITELISTED_APPS = "whitelisted_apps"
+        private const val GRID_COLUMNS = 4
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -79,7 +86,15 @@ class MainActivity : AppCompatActivity() {
         tvClock = findViewById(R.id.tvClock)
         tvStatus = findViewById(R.id.tvStatus)
         tvStatusDetail = findViewById(R.id.tvStatusDetail)
-        ivLogo = findViewById(R.id.ivLogo)
+        tvNoApps = findViewById(R.id.tvNoApps)
+        rvWhitelistedApps = findViewById(R.id.rvWhitelistedApps)
+
+        // Set up whitelisted apps grid
+        whitelistedAppAdapter = WhitelistedAppAdapter(emptyList()) { targetPackage ->
+            launchWhitelistedApp(targetPackage)
+        }
+        rvWhitelistedApps.layoutManager = GridLayoutManager(this, GRID_COLUMNS)
+        rvWhitelistedApps.adapter = whitelistedAppAdapter
 
         // Check if we are device owner and lock down
         if (dpm.isDeviceOwnerApp(packageName)) {
@@ -97,33 +112,40 @@ class MainActivity : AppCompatActivity() {
         setupSecretExit()
     }
 
- override fun onResume() {
-    super.onResume()
-    hideSystemUI()
-    clockHandler.post(clockRunnable)
+    override fun onResume() {
+        super.onResume()
+        hideSystemUI()
+        clockHandler.post(clockRunnable)
 
-    // Re-lock if device owner and not already in lock task
-    if (dpm.isDeviceOwnerApp(packageName)) {
-        try {
-            dpm.setLockTaskPackages(adminComponent, arrayOf(packageName))
-            startLockTask()
-        } catch (e: Exception) {
-            // Already in lock task mode, ignore
+        // Refresh whitelisted apps every time we return to the home screen
+        loadAndDisplayWhitelistedApps()
+
+        // Re-lock if device owner and not already in lock task
+        if (dpm.isDeviceOwnerApp(packageName)) {
+            try {
+                val whitelisted = loadWhitelistedApps()
+                val allAllowed = mutableListOf(packageName)
+                allAllowed.addAll(whitelisted)
+                dpm.setLockTaskPackages(adminComponent, allAllowed.toTypedArray())
+                startLockTask()
+            } catch (e: Exception) {
+                // Already in lock task mode, ignore
+            }
         }
     }
-}
 
-override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-    return when (keyCode) {
-        KeyEvent.KEYCODE_HOME,
-        KeyEvent.KEYCODE_BACK,
-        KeyEvent.KEYCODE_APP_SWITCH,
-        KeyEvent.KEYCODE_MENU,
-        KeyEvent.KEYCODE_VOLUME_UP,
-        KeyEvent.KEYCODE_VOLUME_DOWN -> true // consume & block
-        else -> super.onKeyDown(keyCode, event)
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        return when (keyCode) {
+            KeyEvent.KEYCODE_HOME,
+            KeyEvent.KEYCODE_BACK,
+            KeyEvent.KEYCODE_APP_SWITCH,
+            KeyEvent.KEYCODE_MENU,
+            KeyEvent.KEYCODE_VOLUME_UP,
+            KeyEvent.KEYCODE_VOLUME_DOWN,
+                -> true // consume & block
+            else -> super.onKeyDown(keyCode, event)
+        }
     }
-}
 
     override fun onPause() {
         super.onPause()
@@ -131,65 +153,177 @@ override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
     }
 
     /**
+     * Load whitelisted app package names from SharedPreferences,
+     * resolve their info from PackageManager, and display in the grid.
+     */
+    private fun loadAndDisplayWhitelistedApps() {
+        val whitelistedPkgs = loadWhitelistedApps()
+        val launchableAppsByPackage = getLaunchableAppsByPackage()
+
+        val apps = whitelistedPkgs.mapNotNull { pkgName ->
+            launchableAppsByPackage[pkgName]?.copy(isWhitelisted = true)
+        }.sortedBy { it.appName.lowercase() }
+
+        if (apps.isEmpty()) {
+            tvNoApps.visibility = View.VISIBLE
+            rvWhitelistedApps.visibility = View.GONE
+            return
+        }
+
+        tvNoApps.visibility = View.GONE
+        rvWhitelistedApps.visibility = View.VISIBLE
+
+        whitelistedAppAdapter.updateData(apps)
+    }
+
+    /**
+     * Build a package -> app info map using launcher activities so the home screen
+     * only shows apps that are actually launchable from the device.
+     */
+    private fun getLaunchableAppsByPackage(): Map<String, InstalledAppInfo> {
+        val pm = packageManager
+        val mainIntent = Intent(Intent.ACTION_MAIN, null).apply {
+            addCategory(Intent.CATEGORY_LAUNCHER)
+        }
+
+        @Suppress("DEPRECATION")
+        return pm.queryIntentActivities(mainIntent, 0)
+            .filter { it.activityInfo.packageName != packageName }
+            .associate { resolveInfo ->
+                val pkgName = resolveInfo.activityInfo.packageName
+                pkgName to InstalledAppInfo(
+                    packageName = pkgName,
+                    appName = resolveInfo.loadLabel(pm).toString(),
+                    icon = resolveInfo.loadIcon(pm),
+                    isWhitelisted = false
+                )
+            }
+    }
+
+    /**
+     * Load whitelisted app package names from SharedPreferences.
+     */
+    private fun loadWhitelistedApps(): Set<String> {
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getStringSet(KEY_WHITELISTED_APPS, emptySet())?.toSet() ?: emptySet()
+    }
+
+    /**
+     * Launch a whitelisted app within lock-task mode.
+     */
+    private fun launchWhitelistedApp(targetPackage: String) {
+        try {
+            // Ensure the target package is in the allowed lock-task list
+            if (dpm.isDeviceOwnerApp(packageName)) {
+                val whitelisted = loadWhitelistedApps()
+                val allAllowed = mutableListOf(packageName)
+                allAllowed.addAll(whitelisted)
+                dpm.setLockTaskPackages(adminComponent, allAllowed.toTypedArray())
+            }
+
+            val launchIntent = packageManager.getLaunchIntentForPackage(targetPackage)
+            if (launchIntent != null) {
+                startActivity(launchIntent)
+            } else {
+                Toast.makeText(this, "Cannot launch app", Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            Toast.makeText(this, "Error launching app: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    /**
      * Lock down the device using Device Policy Manager.
      * Only works when the app is set as Device Owner.
      */
-    private fun lockDownDevice() {
-    try {
-        // 1. Set allowed packages and start lock task
-        dpm.setLockTaskPackages(adminComponent, arrayOf(packageName))
-        startLockTask()
-
-        // 2. Prevent factory reset
-        dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_FACTORY_RESET)
-
-        // 3. Prevent adding accounts
-        dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_ADD_USER)
-
-        // 4. Prevent sideloading
-        dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_INSTALL_UNKNOWN_SOURCES)
-
-        // 5. Disable safe boot
-        dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_SAFE_BOOT)
-
-        // ── THESE WERE MISSING ──
-
-        // 6. Prevent WiFi changes (this blocks Settings → WiFi)
-        dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_WIFI)
-
-        // 7. Prevent Bluetooth changes
-        dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_BLUETOOTH)
-
-        // 8. Prevent USB file transfer
-        dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_USB_FILE_TRANSFER)
-
-
-        // 10. Prevent volume changes (optional)
-        // dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_ADJUST_VOLUME)
-
-        // 11. Suspend settings + other system apps
+    private fun lockDownDevice()
+    {
         try {
-            dpm.setPackagesSuspended(
-                adminComponent,
-                arrayOf(
-                    "com.android.settings",
-                    "com.miui.home",
-                    "com.miui.securitycenter",
-                    "com.google.android.gms",
-                    "com.android.vending",
-                    "com.miui.gallery",
-                    "com.mi.android.globalFileexplorer"
-                ),
-                true
-            )
-        } catch (e: Exception) {
-            // Some packages may not be suspendable
-        }
+            // 1. Set allowed packages (our package + whitelisted) and start lock task
+            val whitelisted = loadWhitelistedApps()
+            val allAllowed = mutableListOf(packageName)
+            allAllowed.addAll(whitelisted)
+            dpm.setLockTaskPackages(adminComponent, allAllowed.toTypedArray())
+            startLockTask()
 
-    } catch (e: Exception) {
-        Toast.makeText(this, "Lock failed: ${e.message}", Toast.LENGTH_LONG).show()
+            // 2. Prevent factory reset
+            // dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_FACTORY_RESET)
+
+            // 3. Prevent adding accounts
+            dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_ADD_USER)
+
+            // 4. Prevent sideloading
+            dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_INSTALL_UNKNOWN_SOURCES)
+
+            // 5. Disable safe boot
+            dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_SAFE_BOOT)
+
+            // ── THESE WERE MISSING ──
+
+            // 6. Prevent WiFi changes (this blocks Settings → WiFi)
+//        dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_WIFI)
+
+            // 7. Prevent Bluetooth changes
+            dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_BLUETOOTH)
+
+            // 8. Prevent USB file transfer
+//        dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_USB_FILE_TRANSFER)
+
+            // ── NETWORK & CONNECTIVITY (uncomment as needed) ──
+            // dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_MOBILE_NETWORKS)
+            // dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_TETHERING)
+            // dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_AIRPLANE_MODE)        // API 28+
+            // dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_VPN)
+            // dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_NETWORK_RESET)
+
+            // ── APPS & CONTENT (uncomment as needed) ──
+            // dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_INSTALL_APPS)
+            // dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_UNINSTALL_APPS)
+            // dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_APPS_CONTROL)
+
+            // ── HARDWARE & MEDIA (uncomment as needed) ──
+            // dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_ADJUST_VOLUME)
+            // dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_UNMUTE_MICROPHONE)
+            // dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_MOUNT_PHYSICAL_MEDIA)
+            // dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_SCREEN_TIMEOUT) // API 28+
+            // dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_BRIGHTNESS)     // API 28+
+
+            // ── SECURITY (uncomment as needed) ──
+            // dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_MODIFY_ACCOUNTS)
+            // dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_CREDENTIALS)
+            // dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_LOCATION)       // API 28+
+            // dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_DATE_TIME)      // API 28+
+            // dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_DEBUGGING_FEATURES)    // ⚠️ LOCKS OUT ADB!
+
+            // ── UI & MISC (uncomment as needed) ──
+            // dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_CREATE_WINDOWS)
+            // dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_SET_WALLPAPER)
+            // dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_OUTGOING_CALLS)
+            // dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_SMS)
+
+            // 11. Suspend settings + other system apps
+            try {
+                dpm.setPackagesSuspended(
+                    adminComponent,
+                    arrayOf(
+                        "com.android.settings",
+                        "com.miui.home",
+                        "com.miui.securitycenter",
+                        "com.google.android.gms",
+                        "com.android.vending",
+                        "com.miui.gallery",
+                        "com.mi.android.globalFileexplorer"
+                    ),
+                    true
+                )
+            } catch (e: Exception) {
+                // Some packages may not be suspendable
+            }
+
+        } catch (e: Exception) {
+            Toast.makeText(this, "Lock failed: ${e.message}", Toast.LENGTH_LONG).show()
+        }
     }
-}
 
     /**
      * Immersive sticky mode — hides status bar and navigation bar.
@@ -218,7 +352,7 @@ override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
      * Set up secret 7-tap exit on the logo.
      */
     private fun setupSecretExit() {
-        ivLogo.setOnClickListener {
+        tvClock.setOnClickListener {
             tapCount++
             tapResetHandler.removeCallbacksAndMessages(null)
 

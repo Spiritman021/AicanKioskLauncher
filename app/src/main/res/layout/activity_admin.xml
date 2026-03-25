@@ -87,6 +87,47 @@
             android:background="@color/kiosk_divider"
             android:layout_marginBottom="24dp" />
 
+        <!-- ===== Manage Whitelisted Apps Section ===== -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/manage_apps_title"
+            android:textColor="@color/kiosk_text_primary"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Search / Filter -->
+        <EditText
+            android:id="@+id/etSearchApps"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:hint="@string/search_apps_hint"
+            android:textColor="@color/kiosk_text_primary"
+            android:textColorHint="@color/kiosk_text_secondary"
+            android:background="@color/kiosk_surface"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:textSize="14sp"
+            android:inputType="text"
+            android:maxLines="1"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Installed Apps List -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvInstalledApps"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:nestedScrollingEnabled="false"
+            android:layout_marginBottom="32dp" />
+
+        <!-- Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/kiosk_divider"
+            android:layout_marginBottom="24dp" />
+
         <!-- Return to Kiosk -->
         <Button
             android:id="@+id/btnReturnToKiosk"

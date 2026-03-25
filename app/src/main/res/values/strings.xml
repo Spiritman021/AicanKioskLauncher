@@ -10,7 +10,7 @@
     <string name="kiosk_mode_active">KIOSK MODE ACTIVE</string>
     <string name="kiosk_status_locked">Device is locked in kiosk mode</string>
     <string name="kiosk_status_unlocked">Device owner not set — kiosk inactive</string>
-    <string name="powered_by">Powered by Aican</string>
+    <string name="powered_by">Crescent</string>
 
     <!-- Admin Panel -->
     <string name="admin_title">Admin Settings</string>
@@ -24,4 +24,9 @@
     <string name="device_owner_status">Device Owner: %1$s</string>
     <string name="restrictions_cleared">User restrictions cleared</string>
     <string name="kiosk_relocked">Kiosk mode re-locked</string>
+
+    <!-- App Whitelist -->
+    <string name="manage_apps_title">Manage Whitelisted Apps</string>
+    <string name="search_apps_hint">Search apps…</string>
+    <string name="no_whitelisted_apps">No whitelisted apps. Open Admin to add apps.</string>
 </resources>
