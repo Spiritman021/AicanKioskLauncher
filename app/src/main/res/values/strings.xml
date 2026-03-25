@@ -11,12 +11,23 @@
     <string name="kiosk_status_locked">Device is locked in kiosk mode</string>
     <string name="kiosk_status_unlocked">Device owner not set — kiosk inactive</string>
     <string name="powered_by">Crescent</string>
+    <string name="splash_title">Aican Kiosk</string>
+    <string name="splash_status_starting">Starting kiosk...</string>
+    <string name="splash_status_ready">Launching kiosk...</string>
+    <string name="splash_progress_initial">0%</string>
+    <string name="splash_progress_done">100%</string>
+    <string name="splash_progress_format">%1$d%%</string>
+    <string name="watchdog_channel_name">Kiosk Watchdog</string>
+    <string name="watchdog_title">Kiosk Active</string>
+    <string name="watchdog_message">Device is in managed kiosk mode</string>
 
     <!-- Admin Panel -->
     <string name="admin_title">Admin Settings</string>
     <string name="admin_password_title">Enter Admin Password</string>
+    <string name="confirm_admin_password_title">Confirm Admin Password</string>
     <string name="admin_password_hint">Password</string>
     <string name="admin_password_incorrect">Incorrect password</string>
+    <string name="btn_continue">Continue</string>
     <string name="btn_relock_kiosk">Re-lock Kiosk Mode</string>
     <string name="btn_open_settings">Open Android Settings</string>
     <string name="btn_clear_restrictions">Clear User Restrictions</string>

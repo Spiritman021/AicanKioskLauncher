@@ -21,6 +21,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import android.view.KeyEvent
+import androidx.core.content.ContextCompat
 
 /**
  * MainActivity — The Kiosk Launcher.
@@ -81,6 +82,8 @@ class MainActivity : AppCompatActivity() {
 
         // Keep screen on
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        ContextCompat.startForegroundService(this, Intent(this, KioskWatchdogService::class.java))
 
         // Bind views
         tvClock = findViewById(R.id.tvClock)
@@ -322,6 +325,8 @@ class MainActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 // Some packages may not be suspendable
             }
+
+            ContextCompat.startForegroundService(this, Intent(this, KioskWatchdogService::class.java))
 
         } catch (e: Exception) {
             Toast.makeText(this, "Lock failed: ${e.message}", Toast.LENGTH_LONG).show()
