@@ -253,10 +253,10 @@ class MainActivity : AppCompatActivity() {
             dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_ADD_USER)
 
             // 4. Prevent sideloading
-            dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_INSTALL_UNKNOWN_SOURCES)
+//            dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_INSTALL_UNKNOWN_SOURCES)
 
             // 5. Disable safe boot
-            dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_SAFE_BOOT)
+//            dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_SAFE_BOOT)
 
             // ── THESE WERE MISSING ──
 
@@ -264,7 +264,7 @@ class MainActivity : AppCompatActivity() {
 //        dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_WIFI)
 
             // 7. Prevent Bluetooth changes
-            dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_BLUETOOTH)
+//            dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_BLUETOOTH)
 
             // 8. Prevent USB file transfer
 //        dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_USB_FILE_TRANSFER)
