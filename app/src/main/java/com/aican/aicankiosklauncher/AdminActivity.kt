@@ -39,6 +39,7 @@ class AdminActivity : AppCompatActivity() {
     companion object {
         private const val PREFS_NAME = "kiosk_prefs"
         private const val KEY_WHITELISTED_APPS = "whitelisted_apps"
+        private const val RESTRICTION_DISALLOW_REMOVE_DEVICE_ADMIN = "no_remove_device_admin"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,6 +54,7 @@ class AdminActivity : AppCompatActivity() {
         val btnOpenSettings = findViewById<Button>(R.id.btnOpenSettings)
         val btnClearRestrictions = findViewById<Button>(R.id.btnClearRestrictions)
         val btnRemoveDeviceOwner = findViewById<Button>(R.id.btnRemoveDeviceOwner)
+        val btnDisableKioskCompletely = findViewById<Button>(R.id.btnDisableKioskCompletely)
         val btnReturnToKiosk = findViewById<Button>(R.id.btnReturnToKiosk)
         val etSearchApps = findViewById<EditText>(R.id.etSearchApps)
         val rvInstalledApps = findViewById<RecyclerView>(R.id.rvInstalledApps)
@@ -150,6 +152,10 @@ class AdminActivity : AppCompatActivity() {
             removeDeviceOwner()
         }
 
+        btnDisableKioskCompletely.setOnClickListener {
+            disableKioskCompletely()
+        }
+
         // Return to kiosk
         btnReturnToKiosk.setOnClickListener {
             returnToKiosk()
@@ -241,6 +247,72 @@ class AdminActivity : AppCompatActivity() {
                     dpm.clearDeviceOwnerApp(packageName)
 
                     Toast.makeText(this, getString(R.string.device_owner_removed), Toast.LENGTH_LONG).show()
+                    finish()
+                } catch (e: Exception) {
+                    Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun disableKioskCompletely() {
+        if (!dpm.isDeviceOwnerApp(packageName)) {
+            Toast.makeText(this, "This app is not the device owner", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.disable_kiosk_completely_title))
+            .setMessage(getString(R.string.disable_kiosk_completely_message))
+            .setPositiveButton(getString(R.string.disable_kiosk_completely_confirm)) { _, _ ->
+                try {
+                    try {
+                        stopLockTask()
+                    } catch (_: Exception) {
+                    }
+
+                    try {
+                        dpm.setPackagesSuspended(
+                            adminComponent,
+                            arrayOf(
+                                "com.android.settings",
+                                "com.miui.home",
+                                "com.miui.securitycenter",
+                                "com.google.android.gms",
+                                "com.android.vending",
+                                "com.miui.gallery",
+                                "com.mi.android.globalFileexplorer"
+                            ),
+                            false
+                        )
+                    } catch (_: Exception) {
+                    }
+
+                    listOf(
+                        UserManager.DISALLOW_FACTORY_RESET,
+                        UserManager.DISALLOW_ADD_USER,
+                        UserManager.DISALLOW_SAFE_BOOT,
+                        UserManager.DISALLOW_CONFIG_WIFI,
+                        UserManager.DISALLOW_CONFIG_BLUETOOTH,
+                        UserManager.DISALLOW_USB_FILE_TRANSFER,
+                        UserManager.DISALLOW_INSTALL_UNKNOWN_SOURCES,
+                        RESTRICTION_DISALLOW_REMOVE_DEVICE_ADMIN
+                    ).forEach { restriction ->
+                        try {
+                            dpm.clearUserRestriction(adminComponent, restriction)
+                        } catch (_: Exception) {
+                        }
+                    }
+
+                    try {
+                        dpm.setLockTaskPackages(adminComponent, arrayOf())
+                    } catch (_: Exception) {
+                    }
+
+                    dpm.clearDeviceOwnerApp(packageName)
+
+                    Toast.makeText(this, getString(R.string.kiosk_disabled_completely), Toast.LENGTH_LONG).show()
                     finish()
                 } catch (e: Exception) {
                     Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()

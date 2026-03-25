@@ -21,6 +21,7 @@
     <string name="btn_open_settings">Open Android Settings</string>
     <string name="btn_clear_restrictions">Clear User Restrictions</string>
     <string name="btn_remove_device_owner">Remove Device Owner</string>
+    <string name="btn_disable_kiosk_completely">Disable Kiosk Completely</string>
     <string name="btn_return_to_kiosk">Return to Kiosk</string>
     <string name="device_owner_status">Device Owner: %1$s</string>
     <string name="restrictions_cleared">User restrictions cleared</string>
@@ -29,6 +30,10 @@
     <string name="remove_device_owner_message">This removes all kiosk restrictions permanently.</string>
     <string name="remove_device_owner_confirm">Yes, Remove</string>
     <string name="device_owner_removed">Device Owner removed!</string>
+    <string name="disable_kiosk_completely_title">Disable Kiosk Completely?</string>
+    <string name="disable_kiosk_completely_message">This will unsuspend packages, clear restrictions, remove lock-task packages, and remove device owner.</string>
+    <string name="disable_kiosk_completely_confirm">Yes, Disable</string>
+    <string name="kiosk_disabled_completely">Fully disabled!</string>
 
     <!-- App Whitelist -->
     <string name="manage_apps_title">Manage Whitelisted Apps</string>
