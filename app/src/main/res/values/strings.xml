@@ -20,10 +20,15 @@
     <string name="btn_relock_kiosk">Re-lock Kiosk Mode</string>
     <string name="btn_open_settings">Open Android Settings</string>
     <string name="btn_clear_restrictions">Clear User Restrictions</string>
+    <string name="btn_remove_device_owner">Remove Device Owner</string>
     <string name="btn_return_to_kiosk">Return to Kiosk</string>
     <string name="device_owner_status">Device Owner: %1$s</string>
     <string name="restrictions_cleared">User restrictions cleared</string>
     <string name="kiosk_relocked">Kiosk mode re-locked</string>
+    <string name="remove_device_owner_title">Remove Device Owner?</string>
+    <string name="remove_device_owner_message">This removes all kiosk restrictions permanently.</string>
+    <string name="remove_device_owner_confirm">Yes, Remove</string>
+    <string name="device_owner_removed">Device Owner removed!</string>
 
     <!-- App Whitelist -->
     <string name="manage_apps_title">Manage Whitelisted Apps</string>

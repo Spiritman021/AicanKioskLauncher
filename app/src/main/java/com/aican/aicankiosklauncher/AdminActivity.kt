@@ -13,6 +13,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -51,6 +52,7 @@ class AdminActivity : AppCompatActivity() {
         val btnRelockKiosk = findViewById<Button>(R.id.btnRelockKiosk)
         val btnOpenSettings = findViewById<Button>(R.id.btnOpenSettings)
         val btnClearRestrictions = findViewById<Button>(R.id.btnClearRestrictions)
+        val btnRemoveDeviceOwner = findViewById<Button>(R.id.btnRemoveDeviceOwner)
         val btnReturnToKiosk = findViewById<Button>(R.id.btnReturnToKiosk)
         val etSearchApps = findViewById<EditText>(R.id.etSearchApps)
         val rvInstalledApps = findViewById<RecyclerView>(R.id.rvInstalledApps)
@@ -144,6 +146,10 @@ class AdminActivity : AppCompatActivity() {
             }
         }
 
+        btnRemoveDeviceOwner.setOnClickListener {
+            removeDeviceOwner()
+        }
+
         // Return to kiosk
         btnReturnToKiosk.setOnClickListener {
             returnToKiosk()
@@ -209,6 +215,39 @@ class AdminActivity : AppCompatActivity() {
                 Toast.makeText(this, "Whitelist updated, but kiosk allow-list failed: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
+    }
+
+    private fun removeDeviceOwner() {
+        if (!dpm.isDeviceOwnerApp(packageName)) {
+            Toast.makeText(this, "This app is not the device owner", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.remove_device_owner_title))
+            .setMessage(getString(R.string.remove_device_owner_message))
+            .setPositiveButton(getString(R.string.remove_device_owner_confirm)) { _, _ ->
+                try {
+                    try {
+                        stopLockTask()
+                    } catch (_: Exception) {
+                    }
+
+                    dpm.clearUserRestriction(adminComponent, UserManager.DISALLOW_FACTORY_RESET)
+                    dpm.clearUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_WIFI)
+                    dpm.clearUserRestriction(adminComponent, UserManager.DISALLOW_USB_FILE_TRANSFER)
+                    dpm.clearUserRestriction(adminComponent, UserManager.DISALLOW_SAFE_BOOT)
+
+                    dpm.clearDeviceOwnerApp(packageName)
+
+                    Toast.makeText(this, getString(R.string.device_owner_removed), Toast.LENGTH_LONG).show()
+                    finish()
+                } catch (e: Exception) {
+                    Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun returnToKiosk() {
