@@ -223,6 +223,9 @@ class MainActivity : AppCompatActivity() {
 
             val launchIntent = packageManager.getLaunchIntentForPackage(targetPackage)
             if (launchIntent != null) {
+                // Launch inside the current task so Back can return to our launcher.
+                launchIntent.flags = launchIntent.flags and Intent.FLAG_ACTIVITY_NEW_TASK.inv()
+                launchIntent.flags = launchIntent.flags and Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED.inv()
                 startActivity(launchIntent)
             } else {
                 Toast.makeText(this, "Cannot launch app", Toast.LENGTH_SHORT).show()
