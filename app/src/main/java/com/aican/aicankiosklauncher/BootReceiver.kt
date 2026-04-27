@@ -3,7 +3,6 @@ package com.aican.aicankiosklauncher
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 
 /**
  * Boot Receiver — ensures the kiosk launcher auto-starts after device reboot.
@@ -30,9 +29,7 @@ class BootReceiver : BroadcastReceiver() {
             putExtra(SplashActivity.EXTRA_BOOT_LAUNCH, true)
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(Intent(context, KioskWatchdogService::class.java))
-        }
+        KioskWatchdogStarter.start(context)
         context.startActivity(launchIntent)
     }
 }

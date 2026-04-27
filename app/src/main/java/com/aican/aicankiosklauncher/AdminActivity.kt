@@ -4,6 +4,8 @@ import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.UserManager
 import android.provider.Settings
@@ -51,6 +53,8 @@ class AdminActivity : AppCompatActivity() {
         adminComponent = ComponentName(this, MyDeviceAdminReceiver::class.java)
 
         val tvDeviceOwnerStatus = findViewById<TextView>(R.id.tvDeviceOwnerStatus)
+        val btnSetDefaultLauncher = findViewById<Button>(R.id.btnSetDefaultLauncher)
+        val btnClearDefaultLauncher = findViewById<Button>(R.id.btnClearDefaultLauncher)
         val btnRelockKiosk = findViewById<Button>(R.id.btnRelockKiosk)
         val btnOpenSettings = findViewById<Button>(R.id.btnOpenSettings)
         val btnClearRestrictions = findViewById<Button>(R.id.btnClearRestrictions)
@@ -66,6 +70,7 @@ class AdminActivity : AppCompatActivity() {
             R.string.device_owner_status,
             if (isDeviceOwner) "YES ✅" else "NO ❌"
         )
+        updateLauncherStatus()
 
         // ── Load installed apps ──
         val whitelistedSet = loadWhitelistedApps()
@@ -88,6 +93,14 @@ class AdminActivity : AppCompatActivity() {
         })
 
         // ── Existing button handlers ──
+
+        btnSetDefaultLauncher.setOnClickListener {
+            setAsDefaultLauncher()
+        }
+
+        btnClearDefaultLauncher.setOnClickListener {
+            clearDefaultLauncher()
+        }
 
         // Re-lock into kiosk mode
         btnRelockKiosk.setOnClickListener {
@@ -169,24 +182,24 @@ class AdminActivity : AppCompatActivity() {
      */
     private fun getInstalledLaunchableApps(whitelistedSet: Set<String>): List<InstalledAppInfo> {
         val pm = packageManager
-        val mainIntent = Intent(Intent.ACTION_MAIN, null).apply {
-            addCategory(Intent.CATEGORY_LAUNCHER)
-        }
-
         @Suppress("DEPRECATION")
-        val resolveInfos = pm.queryIntentActivities(mainIntent, 0)
+        return pm.getInstalledApplications(0)
+            .asSequence()
+            .filter { it.packageName != packageName }
+            .mapNotNull { appInfo ->
+                val pkgName = appInfo.packageName
+                val launchIntent = pm.getLaunchIntentForPackage(pkgName) ?: return@mapNotNull null
+                val resolvedActivity = launchIntent.resolveActivityInfo(pm, 0) ?: return@mapNotNull null
 
-        return resolveInfos
-            .filter { it.activityInfo.packageName != packageName }
-            .map { resolveInfo ->
-                val pkgName = resolveInfo.activityInfo.packageName
                 InstalledAppInfo(
                     packageName = pkgName,
-                    appName = resolveInfo.loadLabel(pm).toString(),
-                    icon = resolveInfo.loadIcon(pm),
+                    appName = pm.getApplicationLabel(appInfo).toString(),
+                    icon = pm.getApplicationIcon(appInfo),
                     isWhitelisted = whitelistedSet.contains(pkgName)
                 )
             }
+            .distinctBy { it.packageName }
+            .toList()
             .sortedWith(compareByDescending<InstalledAppInfo> { it.isWhitelisted }.thenBy { it.appName.lowercase() })
     }
 
@@ -255,6 +268,63 @@ class AdminActivity : AppCompatActivity() {
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
+    }
+
+    private fun setAsDefaultLauncher() {
+        if (!dpm.isDeviceOwnerApp(packageName)) {
+            Toast.makeText(this, "Not Device Owner", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        try {
+            val intentFilter = IntentFilter(Intent.ACTION_MAIN).apply {
+                addCategory(Intent.CATEGORY_HOME)
+                addCategory(Intent.CATEGORY_DEFAULT)
+            }
+            val activity = ComponentName(packageName, SplashActivity::class.java.name)
+
+            dpm.clearPackagePersistentPreferredActivities(adminComponent, packageName)
+            dpm.addPersistentPreferredActivity(adminComponent, intentFilter, activity)
+
+            Toast.makeText(this, getString(R.string.default_launcher_set), Toast.LENGTH_SHORT).show()
+            updateLauncherStatus()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun clearDefaultLauncher() {
+        if (!dpm.isDeviceOwnerApp(packageName)) {
+            Toast.makeText(this, "Not Device Owner", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        try {
+            dpm.clearPackagePersistentPreferredActivities(adminComponent, packageName)
+            Toast.makeText(this, getString(R.string.default_launcher_cleared), Toast.LENGTH_SHORT).show()
+            updateLauncherStatus()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun updateLauncherStatus() {
+        val tvLauncherStatus = findViewById<TextView>(R.id.tvLauncherStatus)
+        val intent = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_HOME)
+        }
+
+        @Suppress("DEPRECATION")
+        val resolveInfo = packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
+        val currentLauncher = resolveInfo?.activityInfo?.packageName
+
+        if (currentLauncher == packageName) {
+            tvLauncherStatus.text = getString(R.string.default_launcher_active)
+            tvLauncherStatus.setTextColor(getColor(R.color.kiosk_status_active))
+        } else {
+            tvLauncherStatus.text = getString(R.string.default_launcher_inactive, currentLauncher ?: "Unknown")
+            tvLauncherStatus.setTextColor(getColor(R.color.admin_danger))
+        }
     }
 
     private fun disableKioskCompletely() {

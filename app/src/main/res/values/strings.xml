@@ -8,6 +8,7 @@
 
     <!-- Kiosk UI -->
     <string name="kiosk_mode_active">KIOSK MODE ACTIVE</string>
+    <string name="kiosk_mode_inactive">KIOSK MODE INACTIVE</string>
     <string name="kiosk_status_locked">Device is locked in kiosk mode</string>
     <string name="kiosk_status_unlocked">Device owner not set — kiosk inactive</string>
     <string name="powered_by">Crescent</string>
@@ -20,6 +21,16 @@
     <string name="watchdog_channel_name">Kiosk Watchdog</string>
     <string name="watchdog_title">Kiosk Active</string>
     <string name="watchdog_message">Device is in managed kiosk mode</string>
+    <string name="battery_status_loading">Battery: Loading...</string>
+    <string name="battery_status_unavailable">Battery: Unavailable</string>
+    <string name="battery_status_format">Battery: %1$d%% • %2$s</string>
+    <string name="battery_state_charging">Charging</string>
+    <string name="battery_state_charging_usb">Charging (USB)</string>
+    <string name="battery_state_charging_ac">Charging (AC)</string>
+    <string name="battery_state_charging_wireless">Charging (Wireless)</string>
+    <string name="battery_state_full">Full</string>
+    <string name="battery_state_low">Low Battery</string>
+    <string name="battery_state_on_battery">On Battery</string>
 
     <!-- Admin Panel -->
     <string name="admin_title">Admin Settings</string>
@@ -28,6 +39,8 @@
     <string name="admin_password_hint">Password</string>
     <string name="admin_password_incorrect">Incorrect password</string>
     <string name="btn_continue">Continue</string>
+    <string name="btn_set_default_launcher">Set as Default Launcher</string>
+    <string name="btn_clear_default_launcher">Clear Default Launcher</string>
     <string name="btn_relock_kiosk">Re-lock Kiosk Mode</string>
     <string name="btn_open_settings">Open Android Settings</string>
     <string name="btn_clear_restrictions">Clear User Restrictions</string>
@@ -35,6 +48,11 @@
     <string name="btn_disable_kiosk_completely">Disable Kiosk Completely</string>
     <string name="btn_return_to_kiosk">Return to Kiosk</string>
     <string name="device_owner_status">Device Owner: %1$s</string>
+    <string name="default_launcher_checking">Default Launcher: Checking...</string>
+    <string name="default_launcher_active">Default Launcher: ACTIVE</string>
+    <string name="default_launcher_inactive">Default Launcher: NOT SET\nCurrent: %1$s</string>
+    <string name="default_launcher_set">Set as default launcher!</string>
+    <string name="default_launcher_cleared">Default launcher cleared!</string>
     <string name="restrictions_cleared">User restrictions cleared</string>
     <string name="kiosk_relocked">Kiosk mode re-locked</string>
     <string name="remove_device_owner_title">Remove Device Owner?</string>

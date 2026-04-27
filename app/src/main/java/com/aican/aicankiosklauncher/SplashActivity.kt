@@ -9,7 +9,6 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.ProgressBar
 import android.widget.TextView
-import androidx.core.content.ContextCompat
 
 class SplashActivity : Activity() {
 
@@ -50,7 +49,7 @@ class SplashActivity : Activity() {
         tvStatus = findViewById(R.id.tvSplashStatus)
         tvProgress = findViewById(R.id.tvProgress)
 
-        ContextCompat.startForegroundService(this, Intent(this, KioskWatchdogService::class.java))
+        KioskWatchdogStarter.start(this)
 
         if (intent.getBooleanExtra(EXTRA_BOOT_LAUNCH, false)) {
             startProgressAnimation()

@@ -1,9 +1,12 @@
 package com.aican.aicankiosklauncher
 
 import android.app.admin.DevicePolicyManager
+import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.os.BatteryManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -21,7 +24,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import android.view.KeyEvent
-import androidx.core.content.ContextCompat
 
 /**
  * MainActivity — The Kiosk Launcher.
@@ -43,6 +45,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var adminComponent: ComponentName
 
     private lateinit var tvClock: TextView
+    private lateinit var tvBatteryStatus: TextView
     private lateinit var tvStatus: TextView
     private lateinit var tvStatusDetail: TextView
     private lateinit var tvNoApps: TextView
@@ -59,6 +62,12 @@ class MainActivity : AppCompatActivity() {
 
     private var tapCount = 0
     private val tapResetHandler = Handler(Looper.getMainLooper())
+    private var isBatteryReceiverRegistered = false
+    private val batteryReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            updateBatteryStatus(intent)
+        }
+    }
 
     companion object {
         private const val ADMIN_PASSWORD = "aican2024"
@@ -83,10 +92,11 @@ class MainActivity : AppCompatActivity() {
         // Keep screen on
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        ContextCompat.startForegroundService(this, Intent(this, KioskWatchdogService::class.java))
+        KioskWatchdogStarter.start(this)
 
         // Bind views
         tvClock = findViewById(R.id.tvClock)
+        tvBatteryStatus = findViewById(R.id.tvBatteryStatus)
         tvStatus = findViewById(R.id.tvStatus)
         tvStatusDetail = findViewById(R.id.tvStatusDetail)
         tvNoApps = findViewById(R.id.tvNoApps)
@@ -99,17 +109,7 @@ class MainActivity : AppCompatActivity() {
         rvWhitelistedApps.layoutManager = GridLayoutManager(this, GRID_COLUMNS)
         rvWhitelistedApps.adapter = whitelistedAppAdapter
 
-        // Check if we are device owner and lock down
-        if (dpm.isDeviceOwnerApp(packageName)) {
-            lockDownDevice()
-            tvStatus.text = getString(R.string.kiosk_mode_active)
-            tvStatusDetail.text = getString(R.string.kiosk_status_locked)
-            tvStatus.setTextColor(getColor(R.color.kiosk_status_active))
-        } else {
-            tvStatus.text = "NOT DEVICE OWNER"
-            tvStatusDetail.text = getString(R.string.kiosk_status_unlocked)
-            tvStatus.setTextColor(getColor(R.color.kiosk_status_inactive))
-        }
+        refreshKioskStatus()
 
         // Secret admin exit — 7 taps on logo
         setupSecretExit()
@@ -119,9 +119,12 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         hideSystemUI()
         clockHandler.post(clockRunnable)
+        startBatteryMonitoring()
 
         // Refresh whitelisted apps every time we return to the home screen
         loadAndDisplayWhitelistedApps()
+
+        refreshKioskStatus()
 
         // Re-lock if device owner and not already in lock task
         if (dpm.isDeviceOwnerApp(packageName)) {
@@ -153,6 +156,84 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         clockHandler.removeCallbacks(clockRunnable)
+        stopBatteryMonitoring()
+    }
+
+    private fun refreshKioskStatus() {
+        if (dpm.isDeviceOwnerApp(packageName)) {
+            lockDownDevice()
+            tvStatus.text = getString(R.string.kiosk_mode_active)
+            tvStatusDetail.text = getString(R.string.kiosk_status_locked)
+            tvStatus.setTextColor(getColor(R.color.kiosk_status_active))
+        } else {
+            try {
+                stopLockTask()
+            } catch (_: Exception) {
+            }
+
+            tvStatus.text = getString(R.string.kiosk_mode_inactive)
+            tvStatusDetail.text = getString(R.string.kiosk_status_unlocked)
+            tvStatus.setTextColor(getColor(R.color.kiosk_status_inactive))
+        }
+    }
+
+    private fun startBatteryMonitoring() {
+        if (!isBatteryReceiverRegistered) {
+            registerReceiver(batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+            isBatteryReceiverRegistered = true
+        }
+        val stickyIntent = registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+        updateBatteryStatus(stickyIntent)
+    }
+
+    private fun stopBatteryMonitoring() {
+        if (!isBatteryReceiverRegistered) return
+        try {
+            unregisterReceiver(batteryReceiver)
+        } catch (_: Exception) {
+        }
+        isBatteryReceiverRegistered = false
+    }
+
+    private fun updateBatteryStatus(intent: Intent?) {
+        if (intent == null) {
+            tvBatteryStatus.text = getString(R.string.battery_status_unavailable)
+            tvBatteryStatus.setTextColor(getColor(R.color.kiosk_text_secondary))
+            return
+        }
+
+        val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+        val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+        val status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, BatteryManager.BATTERY_STATUS_UNKNOWN)
+        val plugged = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0)
+        val percent = if (level >= 0 && scale > 0) ((level * 100f) / scale).toInt() else -1
+
+        val statusText = when {
+            status == BatteryManager.BATTERY_STATUS_FULL -> getString(R.string.battery_state_full)
+            status == BatteryManager.BATTERY_STATUS_CHARGING && plugged == BatteryManager.BATTERY_PLUGGED_USB ->
+                getString(R.string.battery_state_charging_usb)
+            status == BatteryManager.BATTERY_STATUS_CHARGING && plugged == BatteryManager.BATTERY_PLUGGED_AC ->
+                getString(R.string.battery_state_charging_ac)
+            status == BatteryManager.BATTERY_STATUS_CHARGING && plugged == BatteryManager.BATTERY_PLUGGED_WIRELESS ->
+                getString(R.string.battery_state_charging_wireless)
+            status == BatteryManager.BATTERY_STATUS_CHARGING -> getString(R.string.battery_state_charging)
+            percent in 0..15 -> getString(R.string.battery_state_low)
+            else -> getString(R.string.battery_state_on_battery)
+        }
+
+        tvBatteryStatus.text = if (percent >= 0) {
+            getString(R.string.battery_status_format, percent, statusText)
+        } else {
+            getString(R.string.battery_status_unavailable)
+        }
+
+        val colorRes = when {
+            status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL ->
+                R.color.kiosk_status_active
+            percent in 0..15 -> R.color.kiosk_status_inactive
+            else -> R.color.kiosk_text_primary
+        }
+        tvBatteryStatus.setTextColor(getColor(colorRes))
     }
 
     /**
@@ -185,22 +266,23 @@ class MainActivity : AppCompatActivity() {
      */
     private fun getLaunchableAppsByPackage(): Map<String, InstalledAppInfo> {
         val pm = packageManager
-        val mainIntent = Intent(Intent.ACTION_MAIN, null).apply {
-            addCategory(Intent.CATEGORY_LAUNCHER)
-        }
-
         @Suppress("DEPRECATION")
-        return pm.queryIntentActivities(mainIntent, 0)
-            .filter { it.activityInfo.packageName != packageName }
-            .associate { resolveInfo ->
-                val pkgName = resolveInfo.activityInfo.packageName
+        return pm.getInstalledApplications(0)
+            .asSequence()
+            .filter { it.packageName != packageName }
+            .mapNotNull { appInfo ->
+                val pkgName = appInfo.packageName
+                val launchIntent = pm.getLaunchIntentForPackage(pkgName) ?: return@mapNotNull null
+                launchIntent.resolveActivityInfo(pm, 0) ?: return@mapNotNull null
+
                 pkgName to InstalledAppInfo(
                     packageName = pkgName,
-                    appName = resolveInfo.loadLabel(pm).toString(),
-                    icon = resolveInfo.loadIcon(pm),
+                    appName = pm.getApplicationLabel(appInfo).toString(),
+                    icon = pm.getApplicationIcon(appInfo),
                     isWhitelisted = false
                 )
             }
+            .toMap()
     }
 
     /**
@@ -245,6 +327,8 @@ class MainActivity : AppCompatActivity() {
     private fun lockDownDevice()
     {
         try {
+            registerAsLauncher()
+
             // 1. Set allowed packages (our package + whitelisted) and start lock task
             val whitelisted = loadWhitelistedApps()
             val allAllowed = mutableListOf(packageName)
@@ -326,10 +410,30 @@ class MainActivity : AppCompatActivity() {
                 // Some packages may not be suspendable
             }
 
-            ContextCompat.startForegroundService(this, Intent(this, KioskWatchdogService::class.java))
+            KioskWatchdogStarter.start(this)
 
         } catch (e: Exception) {
             Toast.makeText(this, "Lock failed: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    /**
+     * Register this app as the persistent HOME launcher while we are device owner.
+     */
+    private fun registerAsLauncher() {
+        if (!dpm.isDeviceOwnerApp(packageName)) return
+
+        try {
+            val homeFilter = IntentFilter(Intent.ACTION_MAIN).apply {
+                addCategory(Intent.CATEGORY_HOME)
+                addCategory(Intent.CATEGORY_DEFAULT)
+            }
+
+            dpm.clearPackagePersistentPreferredActivities(adminComponent, packageName)
+            val launcherComponent = ComponentName(this, SplashActivity::class.java)
+            dpm.addPersistentPreferredActivity(adminComponent, homeFilter, launcherComponent)
+        } catch (_: Exception) {
+            // Some devices/ROMs may reject this; keep kiosk startup alive.
         }
     }
 

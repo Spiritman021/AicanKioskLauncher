@@ -39,7 +39,7 @@
                 android:id="@+id/tvDeviceOwnerStatus"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="32dp"
+                android:layout_marginBottom="12dp"
                 android:background="@color/kiosk_surface"
                 android:gravity="center"
                 android:padding="16dp"
@@ -47,6 +47,39 @@
                 android:textColor="@color/kiosk_text_primary"
                 android:textSize="16sp"
                 android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvLauncherStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:background="@color/kiosk_surface"
+                android:padding="16dp"
+                android:text="@string/default_launcher_checking"
+                android:textColor="@color/kiosk_text_primary"
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/btnSetDefaultLauncher"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginBottom="8dp"
+                android:backgroundTint="@color/kiosk_status_active"
+                android:text="@string/btn_set_default_launcher"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:textSize="15sp" />
+
+            <Button
+                android:id="@+id/btnClearDefaultLauncher"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginBottom="24dp"
+                android:backgroundTint="@android:color/holo_orange_dark"
+                android:text="@string/btn_clear_default_launcher"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:textSize="15sp" />
 
             <Button
                 android:id="@+id/btnRelockKiosk"
