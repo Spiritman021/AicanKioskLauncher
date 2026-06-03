@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingTop="8dp">
+
+    <TextView
+        android:id="@+id/tvPermissionWizardTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textStyle="bold"
+        android:textSize="22sp"
+        android:textColor="@color/kiosk_text_primary"
+        android:text="@string/permission_wizard_title" />
+
+    <TextView
+        android:id="@+id/tvPermissionWizardSubtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:textColor="@color/kiosk_text_secondary"
+        android:textSize="14sp"
+        android:text="@string/permission_wizard_subtitle" />
+
+    <TextView
+        android:id="@+id/tvPermissionWizardChecklist"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:background="@color/kiosk_surface"
+        android:padding="14dp"
+        android:textColor="@color/kiosk_text_primary"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/tvPermissionWizardStepHint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:textColor="@color/kiosk_text_secondary"
+        android:textSize="13sp" />
+
+    <Button
+        android:id="@+id/btnPermissionWizardPrimary"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginTop="14dp"
+        android:textAllCaps="false"
+        android:textStyle="bold"
+        android:textColor="@color/white"
+        android:backgroundTint="@color/kiosk_accent" />
+
+    <Button
+        android:id="@+id/btnPermissionWizardSecondary"
+        android:layout_width="match_parent"
+        android:layout_height="46dp"
+        android:layout_marginTop="8dp"
+        android:textAllCaps="false"
+        android:textStyle="bold"
+        android:textColor="@color/admin_button_text"
+        android:backgroundTint="@color/admin_button_bg"
+        android:visibility="gone" />
+
+</LinearLayout>

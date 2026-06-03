@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- Kiosk Theme Colors (Dark Mode) -->
+    <color name="kiosk_background">#FF0D1117</color>
+    <color name="kiosk_surface">#FF161B22</color>
+    <color name="kiosk_accent">#FF58A6FF</color>
+    <color name="kiosk_accent_secondary">#FF3FB950</color>
+    <color name="kiosk_text_primary">#FFE6EDF3</color>
+    <color name="kiosk_text_secondary">#FF8B949E</color>
+    <color name="kiosk_status_active">#FF3FB950</color>
+    <color name="kiosk_status_inactive">#FFF85149</color>
+    <color name="kiosk_divider">#FF30363D</color>
+
+    <!-- Admin Panel Colors (Dark Mode) -->
+    <color name="admin_button_bg">#FF21262D</color>
+    <color name="admin_button_text">#FFE6EDF3</color>
+    <color name="admin_danger">#FFF85149</color>
+
+    <!-- Switch Colors -->
+    <color name="switch_track_on">#FF3FB950</color>
+    <color name="switch_track_off">#FF30363D</color>
+</resources>

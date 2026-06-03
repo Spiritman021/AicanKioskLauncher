@@ -1,69 +1,126 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
     android:background="@color/kiosk_background">
 
-    <TextView
-        android:id="@+id/tvBatteryStatus"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="top|end"
-        android:layout_marginTop="24dp"
-        android:layout_marginEnd="24dp"
-        android:background="@color/kiosk_surface"
-        android:paddingStart="14dp"
-        android:paddingTop="8dp"
-        android:paddingEnd="14dp"
-        android:paddingBottom="8dp"
-        android:text="@string/battery_status_loading"
-        android:textColor="@color/kiosk_text_primary"
-        android:textSize="13sp"
-        android:textStyle="bold" />
-
-    <!-- Main content (scrollable) -->
+    <!-- ================= Top Bar ================= -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center_horizontal"
-        android:orientation="vertical"
-        android:padding="32dp">
+        android:layout_height="wrap_content"
+        android:paddingStart="20dp"
+        android:paddingTop="16dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="12dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
 
-        <!-- Status Indicator -->
-        <TextView
-            android:id="@+id/tvStatus"
+        <!-- Left spacer -->
+        <!-- Settings -->
+        <Button
+            android:id="@+id/btnOpenUserSettings"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:letterSpacing="0.15"
-            android:text="@string/kiosk_mode_active"
-            android:textColor="@color/kiosk_status_active"
-            android:textSize="16sp"
+            android:layout_height="42dp"
+            android:backgroundTint="@color/kiosk_surface"
+            android:text="@string/btn_user_settings"
+            android:textAllCaps="false"
+            android:textColor="@color/kiosk_text_primary"
+            android:textSize="11sp"
             android:textStyle="bold" />
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:layout_marginBottom="24dp">
 
-            <!-- Digital Clock -->
+        <!-- Clock -->
+        <TextView
+            android:id="@+id/tvClock"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:fontFamily="monospace"
+            android:gravity="center"
+            android:letterSpacing="0.05"
+            android:text="00:00:00 AM"
+            android:textColor="@color/kiosk_text_primary"
+            android:textSize="30sp"
+            android:textStyle="bold" />
+
+        <!-- Top Right Panel -->
+        <LinearLayout
+            android:layout_width="150dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Battery -->
             <TextView
-                android:id="@+id/tvClock"
+                android:id="@+id/tvBatteryStatus"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:fontFamily="monospace"
-                android:letterSpacing="0.05"
-                android:text="00:00:00 AM"
-                android:gravity="center"
+                android:background="@drawable/sidebar_card_bg"
+                android:padding="10dp"
+                android:text="@string/battery_status_loading"
                 android:textColor="@color/kiosk_text_primary"
-                android:textSize="28sp"
+                android:textSize="12sp"
                 android:textStyle="bold" />
+
+            <!-- Kiosk Status -->
+            <TextView
+                android:id="@+id/tvStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/sidebar_card_bg"
+                android:padding="10dp"
+                android:text="@string/kiosk_state_active_short"
+                android:textColor="@color/kiosk_status_active"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <!-- Wifi -->
+            <TextView
+                android:id="@+id/tvWifiSSID"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/sidebar_card_bg"
+                android:padding="10dp"
+                android:text="N/A"
+                android:textColor="@color/kiosk_text_primary"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <!-- More Wifi Button -->
+            <Button
+                android:id="@+id/btnOpenWifiSystem"
+                android:layout_width="match_parent"
+                android:layout_height="42dp"
+                android:visibility="gone"
+                android:layout_marginTop="8dp"
+                android:backgroundTint="@color/admin_button_bg"
+                android:text="Manage WiFi"
+                android:textAllCaps="false"
+                android:textColor="@color/admin_button_text"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
 
         </LinearLayout>
 
-        <!-- No apps message (shown when whitelist is empty) -->
+    </LinearLayout>
+
+
+    <!-- ================= Main Content ================= -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:paddingStart="28dp"
+        android:paddingEnd="28dp"
+        android:paddingTop="10dp">
+
+        <!-- Empty state -->
         <TextView
             android:id="@+id/tvNoApps"
             android:layout_width="wrap_content"
@@ -74,37 +131,29 @@
             android:visibility="gone"
             android:layout_marginBottom="16dp" />
 
-        <!-- Whitelisted Apps Grid -->
+
+        <!-- Apps Grid -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvWhitelistedApps"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
             android:clipToPadding="false"
-            android:paddingBottom="60dp" />
+            android:paddingBottom="8dp" />
+
+
+        <!-- Bottom branding -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="12dp"
+            android:alpha="0.6"
+            android:text="@string/powered_by"
+            android:textColor="@color/kiosk_text_secondary"
+            android:textSize="12sp" />
 
     </LinearLayout>
 
-    <!-- Status Detail -->
-    <TextView
-        android:id="@+id/tvStatusDetail"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/kiosk_status_locked"
-        android:textColor="@color/kiosk_text_secondary"
-        android:layout_marginBottom="44dp"
-        android:layout_gravity="bottom|center_horizontal"
-        android:textSize="13sp" />
-
-    <!-- Bottom Branding -->
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginBottom="24dp"
-        android:alpha="0.6"
-        android:text="@string/powered_by"
-        android:textColor="@color/kiosk_text_secondary"
-        android:textSize="12sp" />
-
-</FrameLayout>
+</LinearLayout>

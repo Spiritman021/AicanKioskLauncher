@@ -1,23 +1,35 @@
 package com.aican.aicankiosklauncher
 
+import android.Manifest
 import android.app.admin.DevicePolicyManager
 import android.content.BroadcastReceiver
+import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.net.wifi.WifiManager
+import android.os.Build
 import android.os.BatteryManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.UserManager
+import android.provider.Settings
+import android.text.SpannableStringBuilder
+import android.graphics.Rect
 import android.view.View
 import android.view.WindowManager
+import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import java.text.SimpleDateFormat
@@ -43,11 +55,14 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var dpm: DevicePolicyManager
     private lateinit var adminComponent: ComponentName
+    private lateinit var wifiManager: WifiManager
 
     private lateinit var tvClock: TextView
     private lateinit var tvBatteryStatus: TextView
+    private lateinit var tvWifiSSID: TextView
+    private lateinit var btnOpenWifiSystem: Button
+    private lateinit var btnOpenUserSettings: Button
     private lateinit var tvStatus: TextView
-    private lateinit var tvStatusDetail: TextView
     private lateinit var tvNoApps: TextView
     private lateinit var rvWhitelistedApps: RecyclerView
     private lateinit var whitelistedAppAdapter: WhitelistedAppAdapter
@@ -68,6 +83,23 @@ class MainActivity : AppCompatActivity() {
             updateBatteryStatus(intent)
         }
     }
+    private var isPermissionFlowActive = false
+    private var permissionWizardDialog: AlertDialog? = null
+    private var restrictedSettingsConfirmed = false
+    private var suppressPermissionWizardUntil = 0L
+    private var lastSettingsClickAt = 0L
+    private val permissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) {
+        isPermissionFlowActive = false
+        continuePermissionFlow()
+    }
+    private val systemWifiPanelLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        hideSystemUI()
+        updateConnectedWifiStatus()
+    }
 
     companion object {
         private const val ADMIN_PASSWORD = "aican2024"
@@ -75,7 +107,17 @@ class MainActivity : AppCompatActivity() {
         private const val TAP_RESET_DELAY_MS = 3000L
         private const val PREFS_NAME = "kiosk_prefs"
         private const val KEY_WHITELISTED_APPS = "whitelisted_apps"
+        private const val KEY_FIRST_LAUNCH_PERMISSIONS_DONE = "first_launch_permissions_done"
+        private const val KEY_RESTRICTED_SETTINGS_CONFIRMED = "restricted_settings_confirmed"
         private const val GRID_COLUMNS = 4
+    }
+
+    private enum class PermissionStep {
+        RESTRICTED_SETTINGS,
+        ACCESS_FINE_LOCATION,
+        NEARBY_WIFI_DEVICES,
+        MODIFY_SYSTEM_SETTINGS,
+        INSTALL_UNKNOWN_APPS
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -83,6 +125,9 @@ class MainActivity : AppCompatActivity() {
 
         dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
         adminComponent = ComponentName(this, MyDeviceAdminReceiver::class.java)
+        wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        restrictedSettingsConfirmed = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getBoolean(KEY_RESTRICTED_SETTINGS_CONFIRMED, false)
 
         // Hide system UI before setting content
         hideSystemUI()
@@ -97,8 +142,10 @@ class MainActivity : AppCompatActivity() {
         // Bind views
         tvClock = findViewById(R.id.tvClock)
         tvBatteryStatus = findViewById(R.id.tvBatteryStatus)
+        tvWifiSSID = findViewById(R.id.tvWifiSSID)
+        btnOpenWifiSystem = findViewById(R.id.btnOpenWifiSystem)
+        btnOpenUserSettings = findViewById(R.id.btnOpenUserSettings)
         tvStatus = findViewById(R.id.tvStatus)
-        tvStatusDetail = findViewById(R.id.tvStatusDetail)
         tvNoApps = findViewById(R.id.tvNoApps)
         rvWhitelistedApps = findViewById(R.id.rvWhitelistedApps)
 
@@ -110,6 +157,19 @@ class MainActivity : AppCompatActivity() {
         rvWhitelistedApps.adapter = whitelistedAppAdapter
 
         refreshKioskStatus()
+
+        expandTouchTarget(btnOpenUserSettings, 28)
+
+        btnOpenUserSettings.setOnClickListener {
+            val now = System.currentTimeMillis()
+            if (now - lastSettingsClickAt < 500) return@setOnClickListener
+            lastSettingsClickAt = now
+            suppressPermissionWizardUntil = now + 1500L
+            startActivity(Intent(this, UserSettingsActivity::class.java))
+        }
+        btnOpenWifiSystem.setOnClickListener {
+            openSystemWifiPanel()
+        }
 
         // Secret admin exit — 7 taps on logo
         setupSecretExit()
@@ -125,19 +185,19 @@ class MainActivity : AppCompatActivity() {
         loadAndDisplayWhitelistedApps()
 
         refreshKioskStatus()
+        updateConnectedWifiStatus()
 
         // Re-lock if device owner and not already in lock task
         if (dpm.isDeviceOwnerApp(packageName)) {
             try {
-                val whitelisted = loadWhitelistedApps()
-                val allAllowed = mutableListOf(packageName)
-                allAllowed.addAll(whitelisted)
-                dpm.setLockTaskPackages(adminComponent, allAllowed.toTypedArray())
+                dpm.setLockTaskPackages(adminComponent, KioskInstallHelper.buildAllowedPackages(this))
                 startLockTask()
             } catch (e: Exception) {
                 // Already in lock task mode, ignore
             }
         }
+
+        continuePermissionFlow()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
@@ -162,8 +222,7 @@ class MainActivity : AppCompatActivity() {
     private fun refreshKioskStatus() {
         if (dpm.isDeviceOwnerApp(packageName)) {
             lockDownDevice()
-            tvStatus.text = getString(R.string.kiosk_mode_active)
-            tvStatusDetail.text = getString(R.string.kiosk_status_locked)
+            tvStatus.text = getString(R.string.kiosk_state_active_short)
             tvStatus.setTextColor(getColor(R.color.kiosk_status_active))
         } else {
             try {
@@ -171,9 +230,209 @@ class MainActivity : AppCompatActivity() {
             } catch (_: Exception) {
             }
 
-            tvStatus.text = getString(R.string.kiosk_mode_inactive)
-            tvStatusDetail.text = getString(R.string.kiosk_status_unlocked)
+            tvStatus.text = getString(R.string.kiosk_state_inactive_short)
             tvStatus.setTextColor(getColor(R.color.kiosk_status_inactive))
+        }
+    }
+
+    private fun continuePermissionFlow() {
+        if (System.currentTimeMillis() < suppressPermissionWizardUntil) return
+        if (isFirstLaunchPermissionFlowCompleted()) {
+            permissionWizardDialog?.dismiss()
+            permissionWizardDialog = null
+            return
+        }
+        showOrUpdatePermissionWizard()
+    }
+
+    private fun nextMissingPermissionStep(): PermissionStep? {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !restrictedSettingsConfirmed) {
+            return PermissionStep.RESTRICTED_SETTINGS
+        }
+        if (!hasRuntimePermission(Manifest.permission.ACCESS_FINE_LOCATION)) {
+            return PermissionStep.ACCESS_FINE_LOCATION
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            !hasRuntimePermission(Manifest.permission.NEARBY_WIFI_DEVICES)
+        ) {
+            return PermissionStep.NEARBY_WIFI_DEVICES
+        }
+        if (!Settings.System.canWrite(this)) {
+            return PermissionStep.MODIFY_SYSTEM_SETTINGS
+        }
+        if (!packageManager.canRequestPackageInstalls()) {
+            return PermissionStep.INSTALL_UNKNOWN_APPS
+        }
+        return null
+    }
+
+    private fun hasRuntimePermission(permission: String): Boolean {
+        return ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun isFirstLaunchPermissionFlowCompleted(): Boolean {
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getBoolean(KEY_FIRST_LAUNCH_PERMISSIONS_DONE, false)
+    }
+
+    private fun markFirstLaunchPermissionFlowCompleted() {
+        getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(KEY_FIRST_LAUNCH_PERMISSIONS_DONE, true)
+            .putBoolean(KEY_RESTRICTED_SETTINGS_CONFIRMED, restrictedSettingsConfirmed)
+            .apply()
+        isPermissionFlowActive = false
+        permissionWizardDialog?.dismiss()
+        permissionWizardDialog = null
+    }
+
+    private fun showOrUpdatePermissionWizard() {
+        val dialog = permissionWizardDialog ?: createPermissionWizardDialog().also {
+            permissionWizardDialog = it
+            it.show()
+        }
+
+        val nextStep = nextMissingPermissionStep()
+        if (nextStep == null) {
+            markFirstLaunchPermissionFlowCompleted()
+            return
+        }
+
+        val tvChecklist = dialog.findViewById<TextView>(R.id.tvPermissionWizardChecklist) ?: return
+        val tvStepHint = dialog.findViewById<TextView>(R.id.tvPermissionWizardStepHint) ?: return
+        val btnPrimary = dialog.findViewById<Button>(R.id.btnPermissionWizardPrimary) ?: return
+        val btnSecondary = dialog.findViewById<Button>(R.id.btnPermissionWizardSecondary) ?: return
+
+        tvChecklist.text = buildPermissionChecklistText()
+        tvStepHint.text = stepHintText(nextStep)
+        btnPrimary.text = getString(R.string.permission_wizard_action_grant_now)
+        btnPrimary.setOnClickListener { performPermissionStep(nextStep) }
+
+        if (nextStep == PermissionStep.RESTRICTED_SETTINGS) {
+            btnSecondary.visibility = View.VISIBLE
+            btnSecondary.text = getString(R.string.permission_wizard_action_recheck)
+            btnSecondary.setOnClickListener {
+                restrictedSettingsConfirmed = true
+                getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                    .edit()
+                    .putBoolean(KEY_RESTRICTED_SETTINGS_CONFIRMED, true)
+                    .apply()
+                continuePermissionFlow()
+            }
+        } else {
+            btnSecondary.visibility = View.GONE
+            btnSecondary.setOnClickListener(null)
+        }
+    }
+
+    private fun createPermissionWizardDialog(): AlertDialog {
+        val view = layoutInflater.inflate(R.layout.dialog_permission_wizard, null)
+        return AlertDialog.Builder(this)
+            .setView(view)
+            .setCancelable(false)
+            .create().apply {
+                setCanceledOnTouchOutside(false)
+            }
+    }
+
+    private fun expandTouchTarget(view: View, extraDp: Int) {
+        val parent = view.parent as? View ?: return
+        val extraPx = (extraDp * resources.displayMetrics.density).toInt()
+        parent.post {
+            val rect = Rect()
+            view.getHitRect(rect)
+            rect.left -= extraPx
+            rect.top -= extraPx
+            rect.right += extraPx
+            rect.bottom += extraPx
+            parent.touchDelegate = android.view.TouchDelegate(rect, view)
+        }
+    }
+
+    private fun performPermissionStep(step: PermissionStep) {
+        if (isPermissionFlowActive) return
+        isPermissionFlowActive = true
+        when (step) {
+            PermissionStep.RESTRICTED_SETTINGS -> {
+                startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.parse("package:$packageName")
+                })
+                isPermissionFlowActive = false
+            }
+            PermissionStep.ACCESS_FINE_LOCATION -> {
+                permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+            }
+            PermissionStep.NEARBY_WIFI_DEVICES -> {
+                permissionLauncher.launch(Manifest.permission.NEARBY_WIFI_DEVICES)
+            }
+            PermissionStep.MODIFY_SYSTEM_SETTINGS -> {
+                startActivity(Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS).apply {
+                    data = Uri.parse("package:$packageName")
+                })
+                isPermissionFlowActive = false
+            }
+            PermissionStep.INSTALL_UNKNOWN_APPS -> {
+                startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                    data = Uri.parse("package:$packageName")
+                })
+                isPermissionFlowActive = false
+            }
+        }
+    }
+
+    private fun buildPermissionChecklistText(): CharSequence {
+        val statusDone = "✓"
+        val statusPending = "•"
+        val builder = SpannableStringBuilder()
+        val steps = listOf(
+            PermissionStep.RESTRICTED_SETTINGS,
+            PermissionStep.ACCESS_FINE_LOCATION,
+            PermissionStep.NEARBY_WIFI_DEVICES,
+            PermissionStep.MODIFY_SYSTEM_SETTINGS,
+            PermissionStep.INSTALL_UNKNOWN_APPS
+        ).filterNot { it == PermissionStep.NEARBY_WIFI_DEVICES && Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU }
+
+        steps.forEachIndexed { index, step ->
+            val granted = isStepGranted(step)
+            val status = if (granted) statusDone else statusPending
+            builder.append("$status ${stepLabel(step)}")
+            if (index != steps.lastIndex) builder.append("\n")
+        }
+        return builder
+    }
+
+    private fun isStepGranted(step: PermissionStep): Boolean {
+        return when (step) {
+            PermissionStep.RESTRICTED_SETTINGS -> {
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) true else restrictedSettingsConfirmed
+            }
+            PermissionStep.ACCESS_FINE_LOCATION -> hasRuntimePermission(Manifest.permission.ACCESS_FINE_LOCATION)
+            PermissionStep.NEARBY_WIFI_DEVICES -> {
+                Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                    hasRuntimePermission(Manifest.permission.NEARBY_WIFI_DEVICES)
+            }
+            PermissionStep.MODIFY_SYSTEM_SETTINGS -> Settings.System.canWrite(this)
+            PermissionStep.INSTALL_UNKNOWN_APPS -> packageManager.canRequestPackageInstalls()
+        }
+    }
+
+    private fun stepLabel(step: PermissionStep): String {
+        return when (step) {
+            PermissionStep.RESTRICTED_SETTINGS -> "Allow restricted settings"
+            PermissionStep.ACCESS_FINE_LOCATION -> "Location (Wi-Fi scan)"
+            PermissionStep.NEARBY_WIFI_DEVICES -> "Nearby Wi-Fi devices"
+            PermissionStep.MODIFY_SYSTEM_SETTINGS -> "Modify system settings"
+            PermissionStep.INSTALL_UNKNOWN_APPS -> "Install unknown apps"
+        }
+    }
+
+    private fun stepHintText(step: PermissionStep): String {
+        return when (step) {
+            PermissionStep.RESTRICTED_SETTINGS -> getString(R.string.permission_wizard_step_restricted)
+            PermissionStep.ACCESS_FINE_LOCATION -> getString(R.string.permission_wizard_step_location)
+            PermissionStep.NEARBY_WIFI_DEVICES -> getString(R.string.permission_wizard_step_nearby)
+            PermissionStep.MODIFY_SYSTEM_SETTINGS -> getString(R.string.permission_wizard_step_write_settings)
+            PermissionStep.INSTALL_UNKNOWN_APPS -> getString(R.string.permission_wizard_step_install_unknown)
         }
     }
 
@@ -234,6 +493,44 @@ class MainActivity : AppCompatActivity() {
             else -> R.color.kiosk_text_primary
         }
         tvBatteryStatus.setTextColor(getColor(colorRes))
+    }
+
+    @Suppress("DEPRECATION")
+    private fun updateConnectedWifiStatus() {
+        if (!wifiManager.isWifiEnabled) {
+            tvWifiSSID.text = getString(R.string.user_settings_connected_wifi_off)
+            return
+        }
+
+        if (!hasRuntimePermission(Manifest.permission.ACCESS_FINE_LOCATION)) {
+            tvWifiSSID.text = getString(R.string.user_settings_connected_wifi_permission_short)
+            return
+        }
+
+        val ssidRaw = wifiManager.connectionInfo?.ssid ?: WifiManager.UNKNOWN_SSID
+        val ssid = ssidRaw.removePrefix("\"").removeSuffix("\"")
+        tvWifiSSID.text = if (ssid.isBlank() || ssid == WifiManager.UNKNOWN_SSID) {
+            getString(R.string.user_settings_connected_wifi_none_short)
+        } else {
+            ssid
+        }
+    }
+
+    private fun openSystemWifiPanel() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            Toast.makeText(this, getString(R.string.user_settings_open_system_wifi_failed), Toast.LENGTH_LONG).show()
+            return
+        }
+
+        try {
+            systemWifiPanelLauncher.launch(Intent(Settings.Panel.ACTION_INTERNET_CONNECTIVITY))
+        } catch (_: ActivityNotFoundException) {
+            Toast.makeText(this, getString(R.string.user_settings_open_system_wifi_failed), Toast.LENGTH_LONG).show()
+        } catch (_: SecurityException) {
+            Toast.makeText(this, getString(R.string.user_settings_open_system_wifi_failed), Toast.LENGTH_LONG).show()
+        } catch (_: Exception) {
+            Toast.makeText(this, getString(R.string.user_settings_open_system_wifi_failed), Toast.LENGTH_LONG).show()
+        }
     }
 
     /**
@@ -300,10 +597,7 @@ class MainActivity : AppCompatActivity() {
         try {
             // Ensure the target package is in the allowed lock-task list
             if (dpm.isDeviceOwnerApp(packageName)) {
-                val whitelisted = loadWhitelistedApps()
-                val allAllowed = mutableListOf(packageName)
-                allAllowed.addAll(whitelisted)
-                dpm.setLockTaskPackages(adminComponent, allAllowed.toTypedArray())
+                dpm.setLockTaskPackages(adminComponent, KioskInstallHelper.buildAllowedPackages(this))
             }
 
             val launchIntent = packageManager.getLaunchIntentForPackage(targetPackage)
@@ -330,10 +624,13 @@ class MainActivity : AppCompatActivity() {
             registerAsLauncher()
 
             // 1. Set allowed packages (our package + whitelisted) and start lock task
-            val whitelisted = loadWhitelistedApps()
-            val allAllowed = mutableListOf(packageName)
-            allAllowed.addAll(whitelisted)
-            dpm.setLockTaskPackages(adminComponent, allAllowed.toTypedArray())
+            dpm.setLockTaskPackages(adminComponent, KioskInstallHelper.buildAllowedPackages(this))
+            // Keep lock-task strict but allow hardware power-menu actions (long-press power).
+            // This restores Restart / Power off options without opening navigation or notifications.
+            dpm.setLockTaskFeatures(
+                adminComponent,
+                DevicePolicyManager.LOCK_TASK_FEATURE_GLOBAL_ACTIONS
+            )
             startLockTask()
 
             // 2. Prevent factory reset
@@ -400,7 +697,6 @@ class MainActivity : AppCompatActivity() {
                         "com.miui.home",
                         "com.miui.securitycenter",
                         "com.google.android.gms",
-                        "com.android.vending",
                         "com.miui.gallery",
                         "com.mi.android.globalFileexplorer"
                     ),

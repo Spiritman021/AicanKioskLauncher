@@ -9,6 +9,8 @@
     <!-- Kiosk UI -->
     <string name="kiosk_mode_active">KIOSK MODE ACTIVE</string>
     <string name="kiosk_mode_inactive">KIOSK MODE INACTIVE</string>
+    <string name="kiosk_state_active_short">Active</string>
+    <string name="kiosk_state_inactive_short">Inactive</string>
     <string name="kiosk_status_locked">Device is locked in kiosk mode</string>
     <string name="kiosk_status_unlocked">Device owner not set — kiosk inactive</string>
     <string name="powered_by">Crescent</string>
@@ -31,9 +33,19 @@
     <string name="battery_state_full">Full</string>
     <string name="battery_state_low">Low Battery</string>
     <string name="battery_state_on_battery">On Battery</string>
+    <string name="btn_user_settings">Settings</string>
 
     <!-- Admin Panel -->
     <string name="admin_title">Admin Settings</string>
+    <string name="admin_tab_actions">Actions</string>
+    <string name="admin_tab_whitelist">Whitelisted Apps</string>
+    <string name="admin_theme_title">Appearance</string>
+    <string name="admin_theme_toggle_label">Dark mode</string>
+    <string name="admin_safe_actions">Safe Actions</string>
+    <string name="admin_safe_actions_note">These actions are routine and can be used for normal maintenance.</string>
+    <string name="admin_danger_zone">Danger Zone</string>
+    <string name="admin_danger_zone_note">Warning: this action can permanently remove kiosk controls from the device.</string>
+    <string name="admin_whitelist_note">Enable only apps that should be visible and launchable from kiosk home.</string>
     <string name="admin_password_title">Enter Admin Password</string>
     <string name="confirm_admin_password_title">Confirm Admin Password</string>
     <string name="admin_password_hint">Password</string>
@@ -43,6 +55,7 @@
     <string name="btn_clear_default_launcher">Clear Default Launcher</string>
     <string name="btn_relock_kiosk">Re-lock Kiosk Mode</string>
     <string name="btn_open_settings">Open Android Settings</string>
+    <string name="btn_update_app">Update App</string>
     <string name="btn_clear_restrictions">Clear User Restrictions</string>
     <string name="btn_remove_device_owner">Remove Device Owner</string>
     <string name="btn_disable_kiosk_completely">Disable Kiosk Completely</string>
@@ -68,4 +81,94 @@
     <string name="manage_apps_title">Manage Whitelisted Apps</string>
     <string name="search_apps_hint">Search apps…</string>
     <string name="no_whitelisted_apps">No whitelisted apps. Open Admin to add apps.</string>
+
+    <!-- In-App Update -->
+    <string name="update_title">App Update</string>
+    <string name="update_status_loading">Checking for updates...</string>
+    <string name="update_status_available">Update available</string>
+    <string name="update_status_latest">Already up to date</string>
+    <string name="update_status_error">Unable to check for updates</string>
+    <string name="update_status_offline">No internet connection</string>
+    <string name="update_current_version">Installed Version</string>
+    <string name="update_remote_version">Available Version</string>
+    <string name="update_release_date">Release Date</string>
+    <string name="update_apk_size">APK Size</string>
+    <string name="update_download_url">Download URL</string>
+    <string name="update_app_name">App Name</string>
+    <string name="update_company">Company</string>
+    <string name="update_value_unknown">Unknown</string>
+    <string name="update_button_checking">Checking...</string>
+    <string name="update_button_refresh">Refresh</string>
+    <string name="update_button_latest">Already Updated</string>
+    <string name="update_button_download">Update App</string>
+    <string name="update_button_retry">Retry</string>
+    <string name="update_password_title">Confirm Admin Password</string>
+    <string name="update_password_message">Enter the admin password to open the update screen.</string>
+    <string name="update_download_title">Downloading Update</string>
+    <string name="update_download_message">Please wait while the APK is downloaded.</string>
+    <string name="update_download_progress_initial">0%</string>
+    <string name="update_download_progress">%1$d%%</string>
+    <string name="update_install_permission_needed">Allow install permission, then return to continue.</string>
+    <string name="update_missing_url">Update link is missing.</string>
+    <string name="update_download_failed">Download failed. Please try again.</string>
+    <string name="update_install_failed">Unable to open installer.</string>
+    <string name="update_metadata_failed">Failed to load update details.</string>
+    <string name="update_password_prompt_hint">Admin password</string>
+
+    <!-- User Settings -->
+    <string name="user_settings_title">Device Settings</string>
+    <string name="user_settings_tab_wifi">Wi-Fi</string>
+    <string name="user_settings_tab_display_sound">Display &amp; Sound</string>
+    <string name="user_settings_wifi_header">Wi-Fi</string>
+    <string name="user_settings_wifi_disabled">Wi-Fi is off</string>
+    <string name="user_settings_wifi_card_subtitle">Tap a network to connect or manage</string>
+    <string name="user_settings_connected_wifi_none_short">Not connected</string>
+    <string name="user_settings_connected_label">Connected</string>
+    <string name="user_settings_connected_wifi_permission_short">Permission required</string>
+    <string name="user_settings_connected_wifi_name">Connected Wi-Fi: %1$s</string>
+    <string name="user_settings_connected_wifi_none">Connected Wi-Fi: Not connected</string>
+    <string name="user_settings_connected_wifi_off">Connected Wi-Fi: Wi-Fi is off</string>
+    <string name="user_settings_connected_wifi_permission">Connected Wi-Fi: Permission required</string>
+    <string name="user_settings_wifi_found">Available networks: %1$d</string>
+    <string name="user_settings_saved_networks">Saved networks</string>
+    <string name="user_settings_saved_networks_count">Saved networks (%1$d)</string>
+    <string name="user_settings_available_networks">Available networks</string>
+    <string name="user_settings_available_networks_count">Available networks (%1$d)</string>
+    <string name="user_settings_wifi_off">Wi-Fi is turned off. Enable it from system panel.</string>
+    <string name="user_settings_refresh_wifi">Refresh</string>
+    <string name="user_settings_open_system_wifi">System Wi-Fi</string>
+    <string name="user_settings_open_system_wifi_failed">Unable to open system Wi-Fi on this device.</string>
+    <string name="user_settings_wifi_toggle_system_only">Use System Wi-Fi panel to turn Wi-Fi on/off.</string>
+    <string name="user_settings_wifi_toggle_failed">Unable to change Wi-Fi state.</string>
+    <string name="user_settings_connect">Connect</string>
+    <string name="user_settings_enable_wifi_first">Enable Wi-Fi first.</string>
+    <string name="user_settings_enter_password">Enter password: %1$s</string>
+    <string name="user_settings_password_required">Password is required.</string>
+    <string name="user_settings_connecting">Connecting to %1$s...</string>
+    <string name="user_settings_connected">Connected to %1$s</string>
+    <string name="user_settings_connect_failed">Unable to connect. Check password or open system Wi-Fi.</string>
+    <string name="user_settings_wifi_password_hint">Wi-Fi password</string>
+    <string name="user_settings_secured_network">Secured</string>
+    <string name="user_settings_open_network">Open</string>
+    <string name="user_settings_brightness">Brightness</string>
+    <string name="user_settings_brightness_value">Level: %1$d</string>
+    <string name="user_settings_brightness_note">To change system brightness permanently, allow Modify system settings when prompted.</string>
+    <string name="user_settings_need_write_settings">Allow Modify system settings to control device brightness.</string>
+    <string name="user_settings_brightness_apply_failed">Unable to apply system brightness.</string>
+    <string name="user_settings_volume">Sound</string>
+    <string name="user_settings_volume_value">Level: %1$d / %2$d</string>
+    <string name="user_settings_display_sound_header">Display &amp; Sound</string>
+    <string name="user_settings_done">Done</string>
+
+    <!-- First Launch Permission Wizard -->
+    <string name="permission_wizard_title">Permissions Required</string>
+    <string name="permission_wizard_subtitle">To use kiosk features properly, grant all required permissions one by one.</string>
+    <string name="permission_wizard_done">All required permissions are granted.</string>
+    <string name="permission_wizard_action_grant_now">Grant Now</string>
+    <string name="permission_wizard_action_recheck">I Have Enabled It</string>
+    <string name="permission_wizard_step_restricted">Enable Allow restricted settings in App info first.</string>
+    <string name="permission_wizard_step_location">Allow Location permission for Wi-Fi scanning.</string>
+    <string name="permission_wizard_step_nearby">Allow Nearby Wi-Fi devices permission for Android 13+.</string>
+    <string name="permission_wizard_step_write_settings">Allow Modify system settings for brightness control.</string>
+    <string name="permission_wizard_step_install_unknown">Allow Install unknown apps for in-app updates.</string>
 </resources>

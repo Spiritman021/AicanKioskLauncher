@@ -1,212 +1,337 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/kiosk_background"
     android:orientation="vertical">
 
-    <androidx.core.widget.NestedScrollView
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:fillViewport="true">
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="24dp"
+        android:paddingTop="20dp"
+        android:paddingEnd="24dp"
+        android:paddingBottom="12dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="14dp"
+            android:text="@string/admin_title"
+            android:textColor="@color/kiosk_text_primary"
+            android:textSize="28sp"
+            android:textStyle="bold" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_horizontal"
-            android:orientation="vertical"
-            android:padding="32dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:layout_marginBottom="16dp"
-                android:text="@string/admin_title"
-                android:textColor="@color/kiosk_text_primary"
-                android:textSize="28sp"
-                android:textStyle="bold" />
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginBottom="24dp"
-                android:background="@color/kiosk_divider" />
-
-            <TextView
-                android:id="@+id/tvDeviceOwnerStatus"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                android:background="@color/kiosk_surface"
-                android:gravity="center"
-                android:padding="16dp"
-                android:text="Device Owner: -"
-                android:textColor="@color/kiosk_text_primary"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tvLauncherStatus"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                android:background="@color/kiosk_surface"
-                android:padding="16dp"
-                android:text="@string/default_launcher_checking"
-                android:textColor="@color/kiosk_text_primary"
-                android:textSize="14sp" />
+            android:background="@color/kiosk_surface"
+            android:orientation="horizontal"
+            android:padding="6dp">
 
             <Button
-                android:id="@+id/btnSetDefaultLauncher"
-                android:layout_width="match_parent"
-                android:layout_height="52dp"
-                android:layout_marginBottom="8dp"
-                android:backgroundTint="@color/kiosk_status_active"
-                android:text="@string/btn_set_default_launcher"
-                android:textAllCaps="false"
-                android:textColor="@color/white"
-                android:textSize="15sp" />
-
-            <Button
-                android:id="@+id/btnClearDefaultLauncher"
-                android:layout_width="match_parent"
-                android:layout_height="52dp"
-                android:layout_marginBottom="24dp"
-                android:backgroundTint="@android:color/holo_orange_dark"
-                android:text="@string/btn_clear_default_launcher"
-                android:textAllCaps="false"
-                android:textColor="@color/white"
-                android:textSize="15sp" />
-
-            <Button
-                android:id="@+id/btnRelockKiosk"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginBottom="12dp"
+                android:id="@+id/btnTabActions"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
                 android:backgroundTint="@color/kiosk_accent"
-                android:text="@string/btn_relock_kiosk"
+                android:text="@string/admin_tab_actions"
                 android:textAllCaps="false"
                 android:textColor="@color/white"
-                android:textSize="15sp" />
-
-            <Button
-                android:id="@+id/btnClearRestrictions"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginBottom="12dp"
-                android:backgroundTint="@color/admin_button_bg"
-                android:text="@string/btn_clear_restrictions"
-                android:textAllCaps="false"
-                android:visibility="gone"
-                android:textColor="@color/admin_button_text"
-                android:textSize="15sp" />
-
-            <Button
-                android:id="@+id/btnOpenSettings"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginBottom="12dp"
-                android:backgroundTint="@color/admin_button_bg"
-                android:text="@string/btn_open_settings"
-                android:textAllCaps="false"
-                android:textColor="@color/admin_button_text"
-                android:textSize="15sp" />
-
-            <Button
-                android:id="@+id/btnRemoveDeviceOwner"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginBottom="12dp"
-                android:visibility="gone"
-                android:backgroundTint="@android:color/holo_red_dark"
-                android:text="@string/btn_remove_device_owner"
-                android:textAllCaps="false"
-                android:textColor="@color/white"
-                android:textSize="15sp" />
-
-            <Button
-                android:id="@+id/btnDisableKioskCompletely"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginBottom="32dp"
-                android:backgroundTint="@android:color/holo_orange_dark"
-                android:text="@string/btn_disable_kiosk_completely"
-                android:textAllCaps="false"
-                android:textColor="@color/white"
-                android:textSize="15sp" />
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginBottom="24dp"
-                android:background="@color/kiosk_divider" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:text="@string/manage_apps_title"
-                android:textColor="@color/kiosk_text_primary"
-                android:textSize="20sp"
                 android:textStyle="bold" />
 
-            <EditText
-                android:id="@+id/etSearchApps"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginBottom="12dp"
-                android:background="@color/kiosk_surface"
-                android:hint="@string/search_apps_hint"
-                android:inputType="text"
-                android:maxLines="1"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:textColor="@color/kiosk_text_primary"
-                android:textColorHint="@color/kiosk_text_secondary"
-                android:textSize="14sp" />
+            <View
+                android:layout_width="8dp"
+                android:layout_height="1dp" />
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvInstalledApps"
+            <Button
+                android:id="@+id/btnTabWhitelist"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:backgroundTint="@color/admin_button_bg"
+                android:text="@string/admin_tab_whitelist"
+                android:textAllCaps="false"
+                android:textColor="@color/admin_button_text"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/layoutActionsTab"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true">
+
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp"
-                android:nestedScrollingEnabled="false"
-                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+                android:orientation="vertical"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:paddingBottom="12dp">
 
-            <View
+                <TextView
+                    android:id="@+id/tvDeviceOwnerStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="10dp"
+                    android:background="@color/kiosk_surface"
+                    android:gravity="center"
+                    android:padding="16dp"
+                    android:textColor="@color/kiosk_text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvLauncherStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:background="@color/kiosk_surface"
+                    android:padding="14dp"
+                    android:textColor="@color/kiosk_text_primary"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/admin_theme_title"
+                    android:textColor="@color/kiosk_text_primary"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="18dp"
+                    android:background="@color/kiosk_surface"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="12dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/admin_theme_toggle_label"
+                        android:textColor="@color/kiosk_text_primary"
+                        android:textSize="14sp" />
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchDarkMode"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="6dp"
+                    android:text="@string/admin_safe_actions"
+                    android:textColor="@color/kiosk_text_primary"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="10dp"
+                    android:text="@string/admin_safe_actions_note"
+                    android:textColor="@color/kiosk_text_secondary"
+                    android:textSize="13sp" />
+
+                <GridLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:columnCount="2"
+                    android:layout_marginBottom="18dp"
+                    android:useDefaultMargins="true">
+
+                    <Button
+                        android:id="@+id/btnSetDefaultLauncher"
+                        android:layout_width="0dp"
+                        android:layout_height="56dp"
+                        android:layout_columnWeight="1"
+                        android:backgroundTint="@color/kiosk_status_active"
+                        android:drawableStart="@android:drawable/ic_menu_set_as"
+                        android:drawablePadding="6dp"
+                        android:text="@string/btn_set_default_launcher"
+                        android:textAllCaps="false"
+                        android:textColor="@color/white"
+                        android:textSize="13sp" />
+
+                    <Button
+                        android:id="@+id/btnClearDefaultLauncher"
+                        android:layout_width="0dp"
+                        android:layout_height="56dp"
+                        android:layout_columnWeight="1"
+                        android:backgroundTint="@android:color/holo_orange_dark"
+                        android:drawableStart="@android:drawable/ic_menu_close_clear_cancel"
+                        android:drawablePadding="6dp"
+                        android:text="@string/btn_clear_default_launcher"
+                        android:textAllCaps="false"
+                        android:textColor="@color/white"
+                        android:textSize="13sp" />
+
+                    <Button
+                        android:id="@+id/btnRelockKiosk"
+                        android:layout_width="0dp"
+                        android:layout_height="56dp"
+                        android:layout_columnWeight="1"
+                        android:backgroundTint="@color/kiosk_accent"
+                        android:drawableStart="@android:drawable/ic_lock_lock"
+                        android:drawablePadding="6dp"
+                        android:text="@string/btn_relock_kiosk"
+                        android:textAllCaps="false"
+                        android:textColor="@color/white"
+                        android:textSize="13sp" />
+
+                    <Button
+                        android:id="@+id/btnOpenSettings"
+                        android:layout_width="0dp"
+                        android:layout_height="56dp"
+                        android:layout_columnWeight="1"
+                        android:backgroundTint="@color/admin_button_bg"
+                        android:drawableStart="@android:drawable/ic_menu_manage"
+                        android:drawablePadding="6dp"
+                        android:text="@string/btn_open_settings"
+                        android:textAllCaps="false"
+                        android:textColor="@color/admin_button_text"
+                        android:textSize="13sp" />
+
+                    <Button
+                        android:id="@+id/btnUpdateApp"
+                        android:layout_width="0dp"
+                        android:layout_height="56dp"
+                        android:layout_columnWeight="1"
+                        android:backgroundTint="@color/admin_button_bg"
+                        android:drawableStart="@android:drawable/stat_sys_download_done"
+                        android:drawablePadding="6dp"
+                        android:text="@string/btn_update_app"
+                        android:textAllCaps="false"
+                        android:textColor="@color/admin_button_text"
+                        android:textSize="13sp" />
+                </GridLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="6dp"
+                    android:text="@string/admin_danger_zone"
+                    android:textColor="@color/admin_danger"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="10dp"
+                    android:text="@string/admin_danger_zone_note"
+                    android:textColor="@color/kiosk_text_secondary"
+                    android:textSize="13sp" />
+
+                <Button
+                    android:id="@+id/btnDisableKioskCompletely"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:backgroundTint="@android:color/holo_orange_dark"
+                    android:drawableStart="@android:drawable/ic_dialog_alert"
+                    android:drawablePadding="6dp"
+                    android:text="@string/btn_disable_kiosk_completely"
+                    android:textAllCaps="false"
+                    android:textColor="@color/white"
+                    android:textSize="13sp" />
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/layoutWhitelistTab"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:visibility="gone">
+
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="@color/kiosk_divider" />
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:paddingBottom="12dp">
 
-        </LinearLayout>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/manage_apps_title"
+                    android:textColor="@color/kiosk_text_primary"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
 
-    </androidx.core.widget.NestedScrollView>
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:text="@string/admin_whitelist_note"
+                    android:textColor="@color/kiosk_text_secondary"
+                    android:textSize="13sp" />
+
+                <EditText
+                    android:id="@+id/etSearchApps"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginBottom="12dp"
+                    android:background="@color/kiosk_surface"
+                    android:hint="@string/search_apps_hint"
+                    android:inputType="text"
+                    android:maxLines="1"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:textColor="@color/kiosk_text_primary"
+                    android:textColorHint="@color/kiosk_text_secondary"
+                    android:textSize="14sp" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvInstalledApps"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+    </FrameLayout>
 
     <LinearLayout
+        android:id="@+id/bottomActionBarAdmin"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/kiosk_background"
         android:elevation="8dp"
         android:orientation="vertical"
-        android:paddingStart="32dp"
-        android:paddingTop="16dp"
-        android:paddingEnd="32dp"
-        android:paddingBottom="24dp">
+        android:paddingStart="24dp"
+        android:paddingTop="14dp"
+        android:paddingEnd="24dp"
+        android:paddingBottom="20dp">
 
         <Button
             android:id="@+id/btnReturnToKiosk"
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:backgroundTint="@color/kiosk_status_active"
+            android:drawableStart="@android:drawable/ic_media_previous"
+            android:drawablePadding="6dp"
             android:text="@string/btn_return_to_kiosk"
             android:textAllCaps="false"
             android:textColor="@color/white"
             android:textSize="15sp"
             android:textStyle="bold" />
-
     </LinearLayout>
 
 </LinearLayout>

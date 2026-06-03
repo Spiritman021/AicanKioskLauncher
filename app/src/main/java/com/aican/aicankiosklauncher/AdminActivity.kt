@@ -11,27 +11,22 @@ import android.os.UserManager
 import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
+import android.view.View
+import android.view.WindowManager
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import androidx.core.widget.NestedScrollView
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.materialswitch.MaterialSwitch
 
-/**
- * AdminActivity — Secret settings panel for servicing the device.
- *
- * Accessible only via the 7-tap password on the kiosk screen.
- * Provides controls to:
- * - View device owner status
- * - Re-lock into kiosk mode
- * - Temporarily clear user restrictions
- * - Open Android Settings
- * - Manage whitelisted apps (toggle on/off)
- * - Return to kiosk launcher
- */
 class AdminActivity : AppCompatActivity() {
 
     private lateinit var dpm: DevicePolicyManager
@@ -48,31 +43,41 @@ class AdminActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_admin)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
         adminComponent = ComponentName(this, MyDeviceAdminReceiver::class.java)
 
+        val btnTabActions = findViewById<Button>(R.id.btnTabActions)
+        val btnTabWhitelist = findViewById<Button>(R.id.btnTabWhitelist)
+        val layoutActionsTab = findViewById<NestedScrollView>(R.id.layoutActionsTab)
+        val layoutWhitelistTab = findViewById<NestedScrollView>(R.id.layoutWhitelistTab)
+        val switchDarkMode = findViewById<MaterialSwitch>(R.id.switchDarkMode)
         val tvDeviceOwnerStatus = findViewById<TextView>(R.id.tvDeviceOwnerStatus)
         val btnSetDefaultLauncher = findViewById<Button>(R.id.btnSetDefaultLauncher)
         val btnClearDefaultLauncher = findViewById<Button>(R.id.btnClearDefaultLauncher)
         val btnRelockKiosk = findViewById<Button>(R.id.btnRelockKiosk)
         val btnOpenSettings = findViewById<Button>(R.id.btnOpenSettings)
-        val btnClearRestrictions = findViewById<Button>(R.id.btnClearRestrictions)
-        val btnRemoveDeviceOwner = findViewById<Button>(R.id.btnRemoveDeviceOwner)
+        val btnUpdateApp = findViewById<Button>(R.id.btnUpdateApp)
         val btnDisableKioskCompletely = findViewById<Button>(R.id.btnDisableKioskCompletely)
         val btnReturnToKiosk = findViewById<Button>(R.id.btnReturnToKiosk)
+        val bottomActionBar = findViewById<View>(R.id.bottomActionBarAdmin)
         val etSearchApps = findViewById<EditText>(R.id.etSearchApps)
         val rvInstalledApps = findViewById<RecyclerView>(R.id.rvInstalledApps)
+        applyBottomSystemInset(bottomActionBar)
 
-        // Show device owner status
-        val isDeviceOwner = dpm.isDeviceOwnerApp(packageName)
         tvDeviceOwnerStatus.text = getString(
             R.string.device_owner_status,
-            if (isDeviceOwner) "YES ✅" else "NO ❌"
+            if (dpm.isDeviceOwnerApp(packageName)) "YES ✅" else "NO ❌"
         )
         updateLauncherStatus()
 
-        // ── Load installed apps ──
+        switchDarkMode.isChecked = UiModePrefs.isDarkModeEnabled(this)
+        switchDarkMode.setOnCheckedChangeListener { _, isChecked ->
+            UiModePrefs.setDarkModeEnabled(this, isChecked)
+            recreate()
+        }
+
         val whitelistedSet = loadWhitelistedApps()
         val installedApps = getInstalledLaunchableApps(whitelistedSet)
 
@@ -83,7 +88,6 @@ class AdminActivity : AppCompatActivity() {
         rvInstalledApps.layoutManager = LinearLayoutManager(this)
         rvInstalledApps.adapter = appListAdapter
 
-        // Search filter
         etSearchApps.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -92,24 +96,32 @@ class AdminActivity : AppCompatActivity() {
             override fun afterTextChanged(s: Editable?) {}
         })
 
-        // ── Existing button handlers ──
-
-        btnSetDefaultLauncher.setOnClickListener {
-            setAsDefaultLauncher()
+        btnTabActions.setOnClickListener {
+            layoutActionsTab.visibility = View.VISIBLE
+            layoutWhitelistTab.visibility = View.GONE
+            btnTabActions.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.kiosk_accent))
+            btnTabActions.setTextColor(getColor(R.color.white))
+            btnTabWhitelist.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.admin_button_bg))
+            btnTabWhitelist.setTextColor(getColor(R.color.admin_button_text))
         }
 
-        btnClearDefaultLauncher.setOnClickListener {
-            clearDefaultLauncher()
+        btnTabWhitelist.setOnClickListener {
+            layoutActionsTab.visibility = View.GONE
+            layoutWhitelistTab.visibility = View.VISIBLE
+            btnTabActions.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.admin_button_bg))
+            btnTabActions.setTextColor(getColor(R.color.admin_button_text))
+            btnTabWhitelist.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.kiosk_accent))
+            btnTabWhitelist.setTextColor(getColor(R.color.white))
         }
+        btnTabActions.performClick()
 
-        // Re-lock into kiosk mode
+        btnSetDefaultLauncher.setOnClickListener { setAsDefaultLauncher() }
+        btnClearDefaultLauncher.setOnClickListener { clearDefaultLauncher() }
+
         btnRelockKiosk.setOnClickListener {
-            if (isDeviceOwner) {
+            if (dpm.isDeviceOwnerApp(packageName)) {
                 try {
-                    val whitelisted = loadWhitelistedApps()
-                    val allAllowed = mutableListOf(packageName)
-                    allAllowed.addAll(whitelisted)
-                    dpm.setLockTaskPackages(adminComponent, allAllowed.toTypedArray())
+                    dpm.setLockTaskPackages(adminComponent, KioskInstallHelper.buildAllowedPackages(this))
                     dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_FACTORY_RESET)
                     dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_ADD_USER)
                     dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_INSTALL_UNKNOWN_SOURCES)
@@ -122,64 +134,19 @@ class AdminActivity : AppCompatActivity() {
             returnToKiosk()
         }
 
-        // Open Android Settings
         btnOpenSettings.setOnClickListener {
             try {
-                val intent = Intent(Settings.ACTION_SETTINGS)
-                startActivity(intent)
+                startActivity(Intent(Settings.ACTION_SETTINGS))
             } catch (e: Exception) {
                 Toast.makeText(this, "Cannot open settings: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
 
-        // Temporarily clear user restrictions
-        btnClearRestrictions.setOnClickListener {
-            if (isDeviceOwner) {
-                try {
-                    dpm.clearUserRestriction(adminComponent, UserManager.DISALLOW_FACTORY_RESET)
-                    dpm.clearUserRestriction(adminComponent, UserManager.DISALLOW_ADD_USER)
-                    dpm.clearUserRestriction(adminComponent, UserManager.DISALLOW_INSTALL_UNKNOWN_SOURCES)
-                    dpm.clearUserRestriction(adminComponent, UserManager.DISALLOW_SAFE_BOOT)
-
-                    // Unsuspend packages
-                    try {
-                        dpm.setPackagesSuspended(
-                            adminComponent,
-                            arrayOf(
-                                "com.android.settings",
-                                "com.google.android.gms"
-                            ),
-                            false
-                        )
-                    } catch (e: Exception) {
-                        // Some packages may not be unsuspendable
-                    }
-
-                    Toast.makeText(this, getString(R.string.restrictions_cleared), Toast.LENGTH_SHORT).show()
-                } catch (e: Exception) {
-                    Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
-                }
-            }
-        }
-
-        btnRemoveDeviceOwner.setOnClickListener {
-            removeDeviceOwner()
-        }
-
-        btnDisableKioskCompletely.setOnClickListener {
-            disableKioskCompletely()
-        }
-
-        // Return to kiosk
-        btnReturnToKiosk.setOnClickListener {
-            returnToKiosk()
-        }
+        btnUpdateApp.setOnClickListener { openUpdateScreenWithPassword() }
+        btnDisableKioskCompletely.setOnClickListener { disableKioskCompletely() }
+        btnReturnToKiosk.setOnClickListener { returnToKiosk() }
     }
 
-    /**
-     * Query PackageManager for all installed apps that have a launcher intent,
-     * excluding our own kiosk launcher package.
-     */
     private fun getInstalledLaunchableApps(whitelistedSet: Set<String>): List<InstalledAppInfo> {
         val pm = packageManager
         @Suppress("DEPRECATION")
@@ -189,7 +156,7 @@ class AdminActivity : AppCompatActivity() {
             .mapNotNull { appInfo ->
                 val pkgName = appInfo.packageName
                 val launchIntent = pm.getLaunchIntentForPackage(pkgName) ?: return@mapNotNull null
-                val resolvedActivity = launchIntent.resolveActivityInfo(pm, 0) ?: return@mapNotNull null
+                launchIntent.resolveActivityInfo(pm, 0) ?: return@mapNotNull null
 
                 InstalledAppInfo(
                     packageName = pkgName,
@@ -203,71 +170,25 @@ class AdminActivity : AppCompatActivity() {
             .sortedWith(compareByDescending<InstalledAppInfo> { it.isWhitelisted }.thenBy { it.appName.lowercase() })
     }
 
-    /**
-     * Load whitelisted app package names from SharedPreferences.
-     */
     private fun loadWhitelistedApps(): Set<String> {
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         return prefs.getStringSet(KEY_WHITELISTED_APPS, emptySet())?.toSet() ?: emptySet()
     }
 
-    /**
-     * Add or remove a package from the whitelist and persist.
-     */
     private fun toggleWhitelistedApp(pkg: String, isEnabled: Boolean) {
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val currentSet = prefs.getStringSet(KEY_WHITELISTED_APPS, emptySet())?.toMutableSet() ?: mutableSetOf()
 
-        if (isEnabled) {
-            currentSet.add(pkg)
-        } else {
-            currentSet.remove(pkg)
-        }
-
+        if (isEnabled) currentSet.add(pkg) else currentSet.remove(pkg)
         prefs.edit().putStringSet(KEY_WHITELISTED_APPS, currentSet).apply()
 
         if (dpm.isDeviceOwnerApp(packageName)) {
             try {
-                val allAllowed = mutableListOf(packageName)
-                allAllowed.addAll(currentSet)
-                dpm.setLockTaskPackages(adminComponent, allAllowed.toTypedArray())
+                dpm.setLockTaskPackages(adminComponent, KioskInstallHelper.buildAllowedPackages(this))
             } catch (e: Exception) {
                 Toast.makeText(this, "Whitelist updated, but kiosk allow-list failed: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
-    }
-
-    private fun removeDeviceOwner() {
-        if (!dpm.isDeviceOwnerApp(packageName)) {
-            Toast.makeText(this, "This app is not the device owner", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        AlertDialog.Builder(this)
-            .setTitle(getString(R.string.remove_device_owner_title))
-            .setMessage(getString(R.string.remove_device_owner_message))
-            .setPositiveButton(getString(R.string.remove_device_owner_confirm)) { _, _ ->
-                try {
-                    try {
-                        stopLockTask()
-                    } catch (_: Exception) {
-                    }
-
-                    dpm.clearUserRestriction(adminComponent, UserManager.DISALLOW_FACTORY_RESET)
-                    dpm.clearUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_WIFI)
-                    dpm.clearUserRestriction(adminComponent, UserManager.DISALLOW_USB_FILE_TRANSFER)
-                    dpm.clearUserRestriction(adminComponent, UserManager.DISALLOW_SAFE_BOOT)
-
-                    dpm.clearDeviceOwnerApp(packageName)
-
-                    Toast.makeText(this, getString(R.string.device_owner_removed), Toast.LENGTH_LONG).show()
-                    finish()
-                } catch (e: Exception) {
-                    Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
-                }
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
     }
 
     private fun setAsDefaultLauncher() {
@@ -310,9 +231,7 @@ class AdminActivity : AppCompatActivity() {
 
     private fun updateLauncherStatus() {
         val tvLauncherStatus = findViewById<TextView>(R.id.tvLauncherStatus)
-        val intent = Intent(Intent.ACTION_MAIN).apply {
-            addCategory(Intent.CATEGORY_HOME)
-        }
+        val intent = Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_HOME) }
 
         @Suppress("DEPRECATION")
         val resolveInfo = packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
@@ -325,6 +244,29 @@ class AdminActivity : AppCompatActivity() {
             tvLauncherStatus.text = getString(R.string.default_launcher_inactive, currentLauncher ?: "Unknown")
             tvLauncherStatus.setTextColor(getColor(R.color.admin_danger))
         }
+    }
+
+    private fun openUpdateScreenWithPassword() {
+        val passwordInput = EditText(this).apply {
+            hint = getString(R.string.update_password_prompt_hint)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+            setPadding(48, 32, 48, 32)
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.update_password_title))
+            .setMessage(getString(R.string.update_password_message))
+            .setView(passwordInput)
+            .setPositiveButton(getString(R.string.btn_continue)) { _, _ ->
+                if (passwordInput.text.toString() != ADMIN_PASSWORD) {
+                    Toast.makeText(this, getString(R.string.admin_password_incorrect), Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                startActivity(Intent(this, UpdateAppActivity::class.java))
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun disableKioskCompletely() {
@@ -398,7 +340,6 @@ class AdminActivity : AppCompatActivity() {
                             }
 
                             dpm.clearDeviceOwnerApp(packageName)
-
                             Toast.makeText(this, getString(R.string.kiosk_disabled_completely), Toast.LENGTH_LONG).show()
                             finish()
                         } catch (e: Exception) {
@@ -424,5 +365,15 @@ class AdminActivity : AppCompatActivity() {
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         returnToKiosk()
+    }
+
+    private fun applyBottomSystemInset(view: View) {
+        val basePaddingBottom = view.paddingBottom
+        ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
+            val bottomInset = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+            v.setPadding(v.paddingLeft, v.paddingTop, v.paddingRight, basePaddingBottom + bottomInset)
+            insets
+        }
+        ViewCompat.requestApplyInsets(view)
     }
 }
